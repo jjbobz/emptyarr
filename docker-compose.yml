@@ -1,0 +1,33 @@
+services:
+  emptyarr:
+    build: .
+    container_name: emptyarr
+    restart: unless-stopped
+    ports:
+      - "7878:7878"
+    volumes:
+      # Config — copy config.yml.example to config.yml and fill in your values
+      - ./data/config.yml:/app/data/config.yml:ro
+
+      # Symlink library paths (must match paths declared in config.yml)
+      - /mnt/symlink_media/symlinks/movie:/media/symlinks/movie:ro
+      - /mnt/symlink_media/symlinks/tv:/media/symlinks/tv:ro
+
+      # Physical media paths
+      - /mnt/user/media/usenet/movies:/media/physical/movies:ro
+      - /mnt/user/media/usenet/tv:/media/physical/tv:ro
+
+      # Decypharr mount — required so symlink targets inside /media/symlinks/* resolve
+      # Your symlinks point into here — must be visible at the same path inside the container
+      - /mnt/symlink_media/decypharr/mount:/mnt/symlink_media/decypharr/mount:ro
+
+    environment:
+      # These override config.yml values if set
+      # Per-instance tokens: PLEX_TOKEN_STREAMSTEAD, PLEX_TOKEN_STREAMSTEAD_UNLIMITED
+      - PLEX_TOKEN_STREAMSTEAD=${PLEX_TOKEN_STREAMSTEAD:-}
+      - PLEX_TOKEN_STREAMSTEAD_UNLIMITED=${PLEX_TOKEN_STREAMSTEAD_UNLIMITED:-}
+      - RD_API_KEY=${RD_API_KEY:-}
+      - AD_API_KEY=${AD_API_KEY:-}
+      - TB_API_KEY=${TB_API_KEY:-}
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
+      - TZ=America/Denver

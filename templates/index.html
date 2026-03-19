@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>emptyarr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0c0e11;
+  --s1:      #12151a;
+  --s2:      #181c22;
+  --border:  #1f2530;
+  --border2: #2a3040;
+  --text:    #bfc8d4;
+  --muted:   #4e5c6e;
+  --bright:  #e4ecf4;
+  --pass:    #34d399;
+  --fail:    #f87171;
+  --warn:    #fbbf24;
+  --info:    #60a5fa;
+  --accent:  #a78bfa;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'IBM Plex Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.6;min-height:100vh;}
+
+/* HEADER */
+header{border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:200;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{font-size:18px;line-height:1;}
+.logo-text{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--bright);}
+.logo-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:2px;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+
+/* SCHEDULING TOGGLE */
+.sched-wrap{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;}
+.toggle-track{width:34px;height:18px;border-radius:9px;background:var(--border2);position:relative;cursor:pointer;transition:background .2s;border:none;flex-shrink:0;}
+.toggle-track.on{background:var(--pass);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .2s;pointer-events:none;}
+.toggle-track.on .toggle-thumb{transform:translateX(16px);}
+.sched-label{color:var(--muted);}
+.sched-label.on{color:var(--pass);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:not(:disabled):hover{background:#c4b5fd;}
+.btn-ghost{background:transparent;color:var(--info);border:1px solid var(--border2);}
+.btn-ghost:not(:disabled):hover{border-color:var(--info);background:rgba(96,165,250,.07);}
+.btn-dry{background:transparent;color:var(--info);border:1px solid rgba(96,165,250,.3);}
+.btn-dry:not(:disabled):hover{background:rgba(96,165,250,.07);}
+.btn-sm{padding:3px 9px;font-size:10px;}
+
+/* MAIN */
+main{max-width:1200px;margin:0 auto;padding:28px;display:flex;flex-direction:column;gap:28px;}
+
+/* SECTION LABEL */
+.section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
+
+/* INSTANCE BLOCK */
+.instance-block{display:flex;flex-direction:column;gap:12px;}
+.instance-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--s1);border:1px solid var(--border);border-radius:8px;}
+.instance-title{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--bright);}
+.instance-url{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:1px;}
+.instance-checks{display:flex;gap:8px;align-items:center;}
+.inst-check-pill{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);}
+.inst-check-pill.pass{border-color:rgba(52,211,153,.25);color:var(--pass);}
+.inst-check-pill.fail{border-color:rgba(248,113,113,.3);color:var(--fail);}
+.inst-check-pill.unknown{color:var(--muted);}
+.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.cdot.pass{background:var(--pass);}
+.cdot.fail{background:var(--fail);}
+.cdot.unknown{background:var(--muted);}
+
+/* LIBRARY GRID */
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding-left:16px;}
+
+/* LIBRARY CARD */
+.lib-card{background:var(--s1);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s;}
+.lib-card.success{border-top:2px solid var(--pass);}
+.lib-card.skipped{border-top:2px solid var(--warn);}
+.lib-card.error  {border-top:2px solid var(--fail);}
+.lib-card.dry_run{border-top:2px solid var(--info);}
+.lib-card.idle   {border-top:2px solid var(--border2);}
+
+.lib-top{padding:12px 14px 8px;display:flex;align-items:flex-start;justify-content:space-between;}
+.lib-name{font-weight:600;color:var(--bright);font-size:13px;}
+.lib-type-badge{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);}
+.lib-type-badge.physical{color:#86efac;border-color:rgba(134,239,172,.3);}
+.lib-type-badge.debrid  {color:var(--accent);border-color:rgba(167,139,250,.3);}
+.lib-type-badge.usenet  {color:var(--info);border-color:rgba(96,165,250,.3);}
+.lib-type-badge.mixed   {color:var(--warn);border-color:rgba(251,191,36,.3);}
+
+.lib-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.lib-stat{background:var(--s1);padding:8px 12px;text-align:center;}
+.lsv{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--bright);line-height:1.2;}
+.lsv.pass{color:var(--pass);}
+.lsv.fail{color:var(--fail);}
+.lsv.warn{color:var(--warn);}
+.lsv.info{color:var(--info);}
+.lsl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+
+.lib-paths{padding:6px 14px;display:flex;flex-direction:column;gap:2px;}
+.lib-path{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+.lib-path-type{font-size:9px;padding:1px 4px;border-radius:2px;background:var(--s2);}
+
+.lib-footer{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
+.lib-ts{font-size:11px;color:var(--muted);}
+.lib-ts b{color:var(--text);}
+.lib-btns{display:flex;gap:5px;}
+
+/* HISTORY */
+.history-wrap{background:var(--s1);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.htoolbar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.hfilters{display:flex;gap:5px;}
+.fbtn{font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.fbtn.active,.fbtn:hover{background:var(--s2);color:var(--bright);}
+
+table.htable{width:100%;border-collapse:collapse;}
+.htable th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:7px 12px;border-bottom:1px solid var(--border);font-weight:500;}
+.htable td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.htable tr:last-child td{border-bottom:none;}
+.htable tr:hover td{background:rgba(255,255,255,.012);}
+
+.badge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;}
+.badge-success{background:rgba(52,211,153,.12);color:var(--pass);}
+.badge-skipped{background:rgba(251,191,36,.12);color:var(--warn);}
+.badge-error  {background:rgba(248,113,113,.12);color:var(--fail);}
+.badge-dry_run{background:rgba(96,165,250,.12);color:var(--info);}
+
+.ts{font-family:var(--mono);font-size:11px;color:var(--muted);}
+.inst-tag{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--s2);border-radius:3px;padding:1px 5px;}
+.lib-tag{font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(167,139,250,.1);border-radius:3px;padding:1px 5px;}
+
+.mini-checks{display:flex;gap:3px;flex-wrap:wrap;}
+.mdot{width:6px;height:6px;border-radius:50%;}
+.mdot.pass{background:var(--pass);}
+.mdot.fail{background:var(--fail);}
+
+/* EXPAND ROW */
+.expand-row{display:none;}
+.expand-row.open{display:table-row;}
+.expand-cell{padding:0!important;background:var(--bg)!important;}
+.expand-inner{padding:12px 18px;border-bottom:1px solid var(--border);}
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.etitle{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:7px;}
+.check-row{display:flex;align-items:flex-start;gap:7px;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.check-row:last-child{border-bottom:none;}
+.crn{color:var(--text);font-weight:500;min-width:90px;flex-shrink:0;}
+.crd{color:var(--muted);line-height:1.4;}
+.removed-list{display:flex;flex-direction:column;gap:2px;max-height:160px;overflow-y:auto;}
+.removed-item{font-size:11px;color:var(--text);padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:5px;align-items:baseline;}
+.removed-item:last-child{border-bottom:none;}
+.ry{color:var(--muted);font-family:var(--mono);font-size:10px;}
+.rt{font-family:var(--mono);font-size:9px;color:var(--muted);background:var(--s2);border-radius:2px;padding:0 3px;text-transform:uppercase;}
+.empty-removed{color:var(--muted);font-size:11px;font-style:italic;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:12px;}
+
+/* SPINNER */
+.spin{display:inline-block;width:10px;height:10px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TOAST */
+#toast{position:fixed;bottom:18px;right:18px;background:var(--s2);border:1px solid var(--border2);border-radius:7px;padding:9px 16px;font-family:var(--mono);font-size:12px;color:var(--text);opacity:0;transform:translateY(5px);transition:all .2s;z-index:9999;pointer-events:none;max-width:340px;}
+#toast.show{opacity:1;transform:translateY(0);}
+#toast.t-pass{color:var(--pass);border-color:rgba(52,211,153,.3);}
+#toast.t-fail{color:var(--fail);border-color:rgba(248,113,113,.3);}
+#toast.t-warn{color:var(--warn);border-color:rgba(251,191,36,.3);}
+
+@media(max-width:700px){
+  .lib-grid{grid-template-columns:1fr;padding-left:0;}
+  .expand-grid{grid-template-columns:1fr;}
+  main{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🗑️</span>
+    <span class="logo-text">emptyarr<span class="logo-sub"> / plex trash watchdog</span></span>
+  </div>
+  <div class="hdr-right">
+    <div class="sched-wrap">
+      <button class="toggle-track" id="sched-toggle" onclick="toggleScheduling()">
+        <div class="toggle-thumb"></div>
+      </button>
+      <span class="sched-label" id="sched-label">loading…</span>
+    </div>
+    <button class="btn btn-ghost" onclick="runChecks()" id="btn-checks">check</button>
+    <button class="btn btn-dry"   onclick="dryRunAll()" id="btn-dryrun">◎ dry run</button>
+    <button class="btn btn-primary" onclick="runAll()"  id="btn-all">▶ run all</button>
+  </div>
+</header>
+
+<main>
+  {% for inst in instances %}
+  <div class="instance-block">
+    <div class="section-label">Plex Instance</div>
+    <div class="instance-header">
+      <div>
+        <div class="instance-title">{{ inst.name }}</div>
+        <div class="instance-url">{{ inst.url }}</div>
+      </div>
+      <div class="instance-checks" id="inst-checks-{{ loop.index }}">
+        <div class="inst-check-pill unknown">
+          <span class="cdot unknown"></span>
+          <span>Plex</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-grid">
+      {% for lib in inst.libraries %}
+      {% set uid = inst.name | replace(' ','_') ~ '_' ~ lib.name | replace(' ','_') %}
+      <div class="lib-card idle" id="lcard-{{ uid }}">
+        <div class="lib-top">
+          <div>
+            <div class="lib-name">{{ lib.name }}</div>
+          </div>
+          <span class="lib-type-badge {{ lib.type }}">{{ lib.type }}</span>
+        </div>
+
+        <div class="lib-stats">
+          <div class="lib-stat">
+            <div class="lsv" id="ls-status-{{ uid }}">—</div>
+            <div class="lsl">Last Status</div>
+          </div>
+          <div class="lib-stat">
+            <div class="lsv" id="ls-removed-{{ uid }}">—</div>
+            <div class="lsl">Removed</div>
+          </div>
+          <div class="lib-stat">
+            <div class="lsv" id="ls-next-{{ uid }}">{{ lib.next_run }}</div>
+            <div class="lsl">Next Run</div>
+          </div>
+        </div>
+
+        <div class="lib-paths">
+          {% for p in lib.paths %}
+          <div class="lib-path">
+            <span class="lib-path-type">{{ p.type }}</span>
+            {{ p.path }}
+          </div>
+          {% endfor %}
+          <div style="margin-top:4px;">
+            <span class="ts" style="font-size:10px;">{{ lib.cron }}</span>
+          </div>
+        </div>
+
+        <div class="lib-footer">
+          <span class="lib-ts" id="ls-ts-{{ uid }}">no runs yet</span>
+          <div class="lib-btns">
+            <button class="btn btn-dry btn-sm" title="Dry run"
+                    onclick="dryRunLib('{{ inst.name }}','{{ lib.name }}')"
+                    id="btn-dry-{{ uid }}">◎</button>
+            <button class="btn btn-ghost btn-sm" title="Run now"
+                    onclick="runLib('{{ inst.name }}','{{ lib.name }}')"
+                    id="btn-run-{{ uid }}">▶</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <!-- HISTORY -->
+  <div>
+    <div class="section-label">Run History</div>
+    <div class="history-wrap">
+      <div class="htoolbar">
+        <div class="hfilters">
+          <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+          <button class="fbtn" onclick="setFilter('success',this)">Success</button>
+          <button class="fbtn" onclick="setFilter('skipped',this)">Skipped</button>
+          <button class="fbtn" onclick="setFilter('dry_run',this)">Dry Run</button>
+          <button class="fbtn" onclick="setFilter('error',this)">Error</button>
+        </div>
+        <span class="ts" id="hcount">0 runs</span>
+      </div>
+      <table class="htable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Instance</th>
+            <th>Library</th>
+            <th>Status</th>
+            <th>Checks</th>
+            <th>Message</th>
+            <th>Removed</th>
+          </tr>
+        </thead>
+        <tbody id="htbody">
+          <tr><td colspan="7">
+            <div class="empty-state">⏳ No runs yet — click "run all" or wait for the cron</div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+let _history = [];
+let _filter  = 'all';
+let _expanded = new Set();
+const _instances = {{ instances | tojson }};
+
+// ── utils ──
+function toast(msg, type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show'+(type?` t-${type}`:'');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.className='',3500);
+}
+function fmtTime(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+    +' '+d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+function fmtRel(iso){
+  if(!iso) return '—';
+  const diff=Math.round((new Date(iso)-Date.now())/1000);
+  if(diff<=0) return 'now';
+  const m=Math.floor(diff/60),s=diff%60;
+  return m>0?`${m}m ${s}s`:`${s}s`;
+}
+function uid(instName,libName){
+  return instName.replace(/ /g,'_')+'_'+libName.replace(/ /g,'_');
+}
+function statusCls(s){return {success:'pass',skipped:'warn',error:'fail',dry_run:'info'}[s]||'';}
+
+// ── scheduling ──
+function applyScheduling(enabled){
+  const t=document.getElementById('sched-toggle');
+  const l=document.getElementById('sched-label');
+  if(!t||!l) return;
+  t.className='toggle-track'+(enabled?' on':'');
+  l.textContent=enabled?'scheduling on':'scheduling paused';
+  l.className='sched-label'+(enabled?' on':'');
+}
+async function toggleScheduling(){
+  const r=await fetch('/api/status'); const d=await r.json();
+  const next=!d.scheduling_enabled;
+  await fetch('/api/scheduling',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:next})});
+  applyScheduling(next);
+  toast(next?'▶ Scheduling resumed':'⏸ Scheduling paused',next?'pass':'warn');
+}
+
+// ── instance checks ──
+function applyInstanceChecks(globalChecks){
+  _instances.forEach((inst,i)=>{
+    const el=document.getElementById(`inst-checks-${i+1}`);
+    if(!el) return;
+    const checks=globalChecks[inst.name]||{};
+    const html=Object.entries(checks).map(([n,c])=>`
+      <div class="inst-check-pill ${c.pass?'pass':'fail'}" title="${c.detail}">
+        <span class="cdot ${c.pass?'pass':'fail'}"></span>
+        <span>${n.replace(/Plex \(/,'').replace(')','')}</span>
+      </div>`).join('');
+    el.innerHTML=html||el.innerHTML;
+  });
+}
+
+// ── library cards ──
+function applyStatus(statusData, nextRuns){
+  _instances.forEach(inst=>{
+    const instSt=statusData.instances||[];
+    const instData=instSt.find(i=>i.name===inst.name)||{};
+    (instData.libraries||[]).forEach(lib=>{
+      const u=uid(inst.name,lib.name);
+      const st=lib.status||{};
+      const card=document.getElementById(`lcard-${u}`);
+      if(card) card.className=`lib-card ${st.last_status||'idle'}`;
+
+      const sv=document.getElementById(`ls-status-${u}`);
+      if(sv){sv.textContent=st.last_status?st.last_status.toUpperCase():'—';sv.className=`lsv ${statusCls(st.last_status)}`;}
+
+      const rv=document.getElementById(`ls-removed-${u}`);
+      if(rv){rv.textContent=st.removed_count!=null?st.removed_count:'—';rv.className=`lsv ${st.removed_count>0?'pass':''}`;}
+
+      const key=`${inst.name}::${lib.name}`;
+      const nv=document.getElementById(`ls-next-${u}`);
+      if(nv&&nextRuns[key]) nv.textContent=fmtRel(nextRuns[key]);
+
+      const tv=document.getElementById(`ls-ts-${u}`);
+      if(tv&&st.last_run) tv.innerHTML=`<b>${fmtTime(st.last_run)}</b>`;
+    });
+  });
+}
+
+// ── history ──
+function setFilter(f,btn){
+  _filter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory(_history);
+}
+function renderHistory(data){
+  const filtered=_filter==='all'?data:data.filter(r=>r.status===_filter);
+  document.getElementById('hcount').textContent=`${filtered.length} / ${data.length} runs`;
+  if(!filtered.length){
+    document.getElementById('htbody').innerHTML=`<tr><td colspan="7"><div class="empty-state">No ${_filter==='all'?'':_filter+' '}runs yet</div></td></tr>`;
+    return;
+  }
+  const rows=filtered.map(run=>{
+    const rid=`run-${run.timestamp.replace(/[:.]/g,'-')}`;
+    const isOpen=_expanded.has(rid);
+    const badge=`<span class="badge badge-${run.status}">${run.status.replace('_',' ')}</span>`;
+    const dots=Object.entries(run.checks||{}).map(([n,c])=>
+      `<span class="mdot ${c.pass?'pass':'fail'}" title="${n}: ${c.detail}"></span>`
+    ).join('');
+    const rem=run.removed_count>0
+      ?`<span style="color:var(--pass);font-family:var(--mono)">${run.removed_count}</span>`
+      :`<span style="color:var(--muted)">0</span>`;
+
+    const checksHtml=Object.entries(run.checks||{}).map(([n,c])=>`
+      <div class="check-row">
+        <span class="mdot ${c.pass?'pass':'fail'}" style="margin-top:4px;flex-shrink:0"></span>
+        <span class="crn">${n}</span>
+        <span class="crd">${c.detail||''}</span>
+      </div>`).join('');
+
+    const removedHtml=run.removed_items&&run.removed_items.length>0
+      ? run.removed_items.map(i=>`
+        <div class="removed-item">
+          <span class="rt">${i.type||''}</span>
+          <span>${i.title}</span>
+          ${i.year?`<span class="ry">${i.year}</span>`:''}
+        </div>`).join('')
+      : `<div class="empty-removed">No items removed</div>`;
+
+    return `
+      <tr class="${isOpen?'expanded':''}" style="cursor:pointer" onclick="toggleExpand('${rid}',this)">
+        <td class="ts">${fmtTime(run.timestamp)}</td>
+        <td><span class="inst-tag">${run.instance}</span></td>
+        <td><span class="lib-tag">${run.library}</span></td>
+        <td>${badge}</td>
+        <td><div class="mini-checks">${dots}</div></td>
+        <td style="font-size:12px;color:var(--text)">${run.message}</td>
+        <td>${rem}</td>
+      </tr>
+      <tr class="expand-row ${isOpen?'open':''}" id="${rid}">
+        <td class="expand-cell" colspan="7">
+          <div class="expand-inner">
+            <div class="expand-grid">
+              <div>
+                <div class="etitle">Health Checks</div>
+                ${checksHtml}
+              </div>
+              <div>
+                <div class="etitle">Removed Items (${run.removed_count})</div>
+                <div class="removed-list">${removedHtml}</div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+  document.getElementById('htbody').innerHTML=rows;
+}
+function toggleExpand(rid,row){
+  const er=document.getElementById(rid);
+  if(!er) return;
+  if(_expanded.has(rid)){_expanded.delete(rid);er.classList.remove('open');row.classList.remove('expanded');}
+  else{_expanded.add(rid);er.classList.add('open');row.classList.add('expanded');}
+}
+
+// ── fetch ──
+async function fetchStatus(){
+  try{
+    const r=await fetch('/api/status'); const d=await r.json();
+    if(d.global_checks) applyInstanceChecks(d.global_checks);
+    applyStatus(d,d.next_runs||{});
+    if(d.scheduling_enabled!==undefined) applyScheduling(d.scheduling_enabled);
+  }catch(e){}
+}
+async function fetchHistory(){
+  try{const r=await fetch('/api/history');_history=await r.json();renderHistory(_history);}catch(e){}
+}
+
+// ── actions ──
+async function runChecks(){
+  const btn=document.getElementById('btn-checks');
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span>`;
+  try{
+    const r=await fetch('/api/checks'); const d=await r.json();
+    applyInstanceChecks(d);
+    const allPass=Object.values(d).every(inst=>Object.values(inst).every(c=>c.pass));
+    toast(allPass?'✓ All checks passed':'✗ Check(s) failed',allPass?'pass':'fail');
+  }catch(e){toast('Error','fail');}
+  finally{btn.disabled=false;btn.textContent='check';}
+}
+
+async function runAll(){
+  const btn=document.getElementById('btn-all');
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span> running…`;
+  toast('Running all libraries…');
+  try{
+    await fetch('/api/run/all',{method:'POST'});
+    await new Promise(r=>setTimeout(r,4000));
+    await Promise.all([fetchStatus(),fetchHistory()]);
+    toast('✓ All runs complete','pass');
+  }catch(e){toast('Error','fail');}
+  finally{btn.disabled=false;btn.innerHTML='▶ run all';}
+}
+
+async function dryRunAll(){
+  const btn=document.getElementById('btn-dryrun');
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span> scanning…`;
+  toast('Dry run — all libraries…');
+  try{
+    await fetch('/api/dryrun/all',{method:'POST'});
+    await new Promise(r=>setTimeout(r,4000));
+    await Promise.all([fetchStatus(),fetchHistory()]);
+    toast('◎ Dry run complete — check history','');
+  }catch(e){toast('Error','fail');}
+  finally{btn.disabled=false;btn.innerHTML='◎ dry run';}
+}
+
+async function runLib(inst,lib){
+  const u=uid(inst,lib);
+  const btn=document.getElementById(`btn-run-${u}`);
+  if(btn){btn.disabled=true;btn.innerHTML=`<span class="spin"></span>`;}
+  toast(`Running ${lib}…`);
+  try{
+    await fetch(`/api/run/${encodeURIComponent(inst)}/${encodeURIComponent(lib)}`,{method:'POST'});
+    await new Promise(r=>setTimeout(r,4000));
+    await Promise.all([fetchStatus(),fetchHistory()]);
+    toast(`✓ ${lib} complete`,'pass');
+  }catch(e){toast('Error','fail');}
+  finally{if(btn){btn.disabled=false;btn.textContent='▶';}}
+}
+
+async function dryRunLib(inst,lib){
+  const u=uid(inst,lib);
+  const btn=document.getElementById(`btn-dry-${u}`);
+  if(btn){btn.disabled=true;btn.innerHTML=`<span class="spin"></span>`;}
+  toast(`Dry run — ${lib}…`);
+  try{
+    await fetch(`/api/dryrun/${encodeURIComponent(inst)}/${encodeURIComponent(lib)}`,{method:'POST'});
+    await new Promise(r=>setTimeout(r,4000));
+    await Promise.all([fetchStatus(),fetchHistory()]);
+    toast(`◎ Dry run complete — ${lib}`,'');
+  }catch(e){toast('Error','fail');}
+  finally{if(btn){btn.disabled=false;btn.textContent='◎';}}
+}
+
+// ── poll ──
+setInterval(fetchStatus,15000);
+setInterval(fetchHistory,20000);
+fetchStatus();
+fetchHistory();
+</script>
+</body>
+</html>
