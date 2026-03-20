@@ -270,8 +270,11 @@ def api_wizard_save():
     """
     Receive wizard form data and write config.yml.
     Expects JSON matching the config structure.
+    If store_tokens=True, writes tokens directly to config (less secure but simpler).
+    If store_tokens=False, leaves tokens blank and returns the env var names needed.
     """
-    data = request.get_json(silent=True) or {}
+    data         = request.get_json(silent=True) or {}
+    store_tokens = bool(data.get("store_tokens", False))
 
     # Build config dict from wizard data
     cfg = {
@@ -284,13 +287,28 @@ def api_wizard_save():
         "plex_instances": []
     }
 
+    env_vars_needed = []  # list of {name, description} for the summary screen
+
     for inst in data.get("instances", []):
+        inst_name = inst.get("name", "")
+        token     = inst.get("token", "")
+        safe_name = inst_name.upper().replace(" ", "_").replace("-", "_")
+        env_var   = f"PLEX_TOKEN_{safe_name}"
+
         instance_cfg = {
-            "name":      inst.get("name", ""),
+            "name":      inst_name,
             "url":       inst.get("url", ""),
-            "token":     "",   # never write token to config — use env var
+            "token":     token if store_tokens else "",
             "libraries": []
         }
+
+        if not store_tokens:
+            env_vars_needed.append({
+                "name":        env_var,
+                "description": f"Plex token for '{inst_name}'",
+                "value":       token,  # send back so UI can show it pre-filled
+            })
+
         for lib in inst.get("libraries", []):
             lib_cfg = {
                 "name": lib.get("name", ""),
@@ -300,16 +318,33 @@ def api_wizard_save():
             }
             for p in lib.get("paths", []):
                 path_cfg = {
-                    "path":         p.get("path", ""),
-                    "type":         p.get("type", "physical"),
-                    "min_files":    int(p.get("min_files", 50)),
+                    "path":          p.get("path", ""),
+                    "type":          p.get("type", "physical"),
+                    "min_files":     int(p.get("min_files", 50)),
                     "min_threshold": int(p.get("min_threshold", 90)),
                 }
-                if p.get("provider_checks"):
+                pcs = p.get("provider_checks", [])
+                if pcs:
                     path_cfg["provider_checks"] = [
                         {"type": pc.get("type", ""), "api_key": ""}
-                        for pc in p["provider_checks"]
+                        for pc in pcs
                     ]
+                    # Add env var hints for provider API keys
+                    for pc in pcs:
+                        ptype    = pc.get("type", "")
+                        env_map  = {
+                            "realdebrid": "RD_API_KEY",
+                            "alldebrid":  "AD_API_KEY",
+                            "torbox":     "TB_API_KEY",
+                            "debridlink": "DL_API_KEY",
+                        }
+                        env_name = env_map.get(ptype)
+                        if env_name and not any(e["name"] == env_name for e in env_vars_needed):
+                            env_vars_needed.append({
+                                "name":        env_name,
+                                "description": f"{ptype.capitalize()} API key (optional — for provider health checks)",
+                                "value":       "",
+                            })
                 lib_cfg["paths"].append(path_cfg)
             instance_cfg["libraries"].append(lib_cfg)
         cfg["plex_instances"].append(instance_cfg)
@@ -318,7 +353,12 @@ def api_wizard_save():
         os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
         with open(CONFIG_PATH, "w") as f:
             yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-        return jsonify({"ok": True, "message": "Config saved. Restart the container to apply."})
+        return jsonify({
+            "ok":              True,
+            "store_tokens":    store_tokens,
+            "env_vars_needed": env_vars_needed,
+            "message":         "Config saved. Restart the container to apply.",
+        })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

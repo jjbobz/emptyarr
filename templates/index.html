@@ -979,16 +979,66 @@ function selectBrowserPath(path){
   if(modal) modal.remove();
 }
 
-// Step 3: Notifications + Save
+// Step 3: Tokens + Notifications + Save
 function renderStep3(body,next){
-  document.getElementById('wiz-title').textContent='Step 3 — Notifications & Save';
+  document.getElementById('wiz-title').textContent='Step 3 — Tokens, Notifications & Save';
   next.textContent='💾 save config';
   next.onclick=wizSaveConfig;
 
+  const envVarRows=_wizData.instances.map((inst,i)=>{
+    const safe=inst.name.toUpperCase().replace(/ /g,'_').replace(/-/g,'_');
+    const varName=`PLEX_TOKEN_${safe}`;
+    return {inst,varName,i};
+  });
+
   body.innerHTML=`
     <p style="color:var(--muted);margin-bottom:16px;font-size:12px;">
-      Optionally configure Discord notifications, then save your config.
+      Choose how to store your Plex tokens, configure notifications, then save.
     </p>
+
+    <div style="margin-bottom:20px;">
+      <div class="form-label" style="margin-bottom:8px;">Plex Token Storage</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:12px;">
+          <input type="radio" name="token-storage" value="envvar" checked style="margin-top:2px;accent-color:var(--accent);" onchange="document.getElementById('envvar-guide').style.display='block'" />
+          <div>
+            <div style="font-weight:600;color:var(--bright);margin-bottom:2px;">Environment variables <span style="font-family:var(--mono);font-size:9px;background:rgba(52,211,153,.1);color:var(--pass);padding:1px 6px;border-radius:3px;margin-left:4px;">recommended</span></div>
+            <div style="font-size:11px;color:var(--muted);">Set tokens in Docker UI. More secure — not written to disk inside this container.</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:12px;">
+          <input type="radio" name="token-storage" value="config" style="margin-top:2px;accent-color:var(--accent);" onchange="document.getElementById('envvar-guide').style.display='none'" />
+          <div>
+            <div style="font-weight:600;color:var(--bright);margin-bottom:2px;">Store in config.yml</div>
+            <div style="font-size:11px;color:var(--muted);">Tokens written to config.yml. Simpler but less secure — only use on a trusted private network.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div id="envvar-guide" style="background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:14px;margin-bottom:16px;">
+      <div class="form-label" style="margin-bottom:10px;">Set these in your Docker UI environment variables:</div>
+      ${envVarRows.map(({inst,varName,i})=>`
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${inst.name}</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <code style="background:var(--s1);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:12px;color:var(--accent);">${varName}</code>
+            <span style="color:var(--muted);font-size:11px;">=</span>
+            <input type="password" id="token-display-${i}"
+              placeholder="your Plex token (shown here for reference)"
+              style="flex:1;min-width:200px;background:var(--s1);border:1px solid var(--border2);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;"
+              value="${inst.token||''}" />
+          </div>
+        </div>
+      `).join('')}
+      <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">
+        Don't have your token? Find it at:
+        <a href="https://support.plex.tv/articles/204059436" target="_blank" style="color:var(--info);">support.plex.tv/articles/204059436</a>
+      </div>
+    </div>
+
+    <hr class="wiz-divider"/>
+
     <div class="form-group">
       <label class="form-label">Discord Webhook URL (optional)</label>
       <input class="form-input" id="wiz-discord" value="${_wizData.discord_webhook||''}" placeholder="https://discord.com/api/webhooks/..." />
@@ -1008,17 +1058,7 @@ function renderStep3(body,next){
         Skip — something prevented the run
       </label>
     </div>
-    <hr class="wiz-divider"/>
-    <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--warn);line-height:1.6;">
-      ⚠️ Saving will write <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">/app/data/config.yml</code> inside the container.
-      The container needs to be restarted to pick up the new config.
-      Plex tokens are NOT written to the config — set them as environment variables:
-      <br/><br/>
-      ${_wizData.instances.map(inst=>{
-        const safe=inst.name.toUpperCase().replace(/ /g,'_').replace(/-/g,'_');
-        return `<code style="background:var(--bg);padding:1px 6px;border-radius:3px;display:inline-block;margin:2px 0;">PLEX_TOKEN_${safe}</code>`;
-      }).join('<br/>')}
-    </div>
+
     <div id="wiz-save-result" style="margin-top:12px;"></div>
   `;
 }
@@ -1029,17 +1069,39 @@ async function wizSaveConfig(){
   _wizData.notify_failure=document.getElementById('wiz-notify-failure').checked;
   _wizData.notify_skip=document.getElementById('wiz-notify-skip').checked;
 
+  const storeTokens=document.querySelector('input[name="token-storage"]:checked')?.value==='config';
+
+  // Grab token values from display fields
+  _wizData.instances.forEach((inst,i)=>{
+    const field=document.getElementById(`token-display-${i}`);
+    if(field) inst.token=field.value.trim();
+  });
+
   const btn=document.getElementById('wiz-next');
   btn.disabled=true;btn.innerHTML=`<span class="spin"></span> saving…`;
 
   try{
-    const r=await fetch('/api/wizard/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_wizData)});
+    const payload={..._wizData,store_tokens:storeTokens};
+    const r=await fetch('/api/wizard/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json();
     const result=document.getElementById('wiz-save-result');
     if(d.ok){
-      result.innerHTML=`<div style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:12px;color:var(--pass);font-size:12px;">
-        ✓ Config saved successfully!<br/>
-        <span style="color:var(--muted);">Restart the container to apply the new configuration.</span>
+      let envSection='';
+      if(!storeTokens && d.env_vars_needed && d.env_vars_needed.length){
+        const rows=d.env_vars_needed.map(ev=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+            <code style="background:var(--bg);padding:3px 8px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--accent);">${ev.name}</code>
+            <span style="font-size:11px;color:var(--muted);">${ev.description}</span>
+          </div>`).join('');
+        envSection=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(52,211,153,.2);">
+          <div style="font-size:11px;color:var(--pass);font-weight:600;margin-bottom:8px;">Set these in your Docker UI environment variables:</div>
+          ${rows}
+        </div>`;
+      }
+      result.innerHTML=`<div style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:14px;color:var(--pass);font-size:12px;line-height:1.7;">
+        ✓ Config saved!
+        ${envSection}
+        <div style="margin-top:10px;color:var(--muted);">Restart the container to apply the new configuration.</div>
       </div>`;
       btn.innerHTML='✓ saved';
       toast('Config saved — restart container to apply','pass');
