@@ -306,6 +306,14 @@ def api_wizard_save():
     data         = request.get_json(silent=True) or {}
     store_tokens = bool(data.get("store_tokens", False))
 
+    # Load existing config to preserve auth, providers and other blocks
+    # that aren't managed by the wizard/settings form
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            existing = yaml.safe_load(f) or {}
+    except Exception:
+        existing = {}
+
     # Build config dict from wizard data
     cfg = {
         "discord_webhook": data.get("discord_webhook", ""),
@@ -317,7 +325,7 @@ def api_wizard_save():
         "plex_instances": []
     }
 
-    # Write auth block if provided
+    # Preserve existing auth block unless new credentials are being set
     wiz_user = data.get("auth_username", "").strip()
     wiz_pass = data.get("auth_password", "").strip()
     if wiz_user and wiz_pass:
@@ -325,6 +333,12 @@ def api_wizard_save():
             "username":      wiz_user,
             "password_hash": hash_password(wiz_pass),
         }
+    elif "auth" in existing:
+        cfg["auth"] = existing["auth"]  # preserve existing auth
+
+    # Preserve existing providers block
+    if "providers" in existing:
+        cfg["providers"] = existing["providers"]
 
     env_vars_needed = []  # list of {name, description} for the summary screen
 
