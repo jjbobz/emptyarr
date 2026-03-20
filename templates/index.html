@@ -30,10 +30,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 /* HEADER */
 header{border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:200;}
 .logo{display:flex;align-items:center;gap:10px;}
-.logo-icon{font-size:18px;line-height:1;}
+.logo-icon{font-size:18px;}
 .logo-text{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--bright);}
 .logo-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:2px;}
 .hdr-right{display:flex;align-items:center;gap:10px;}
+.auth-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid var(--border2);color:var(--muted);}
+.auth-badge.on{color:var(--pass);border-color:rgba(52,211,153,.3);}
 
 /* SCHEDULING TOGGLE */
 .sched-wrap{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;}
@@ -53,12 +55,14 @@ header{border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:
 .btn-ghost:not(:disabled):hover{border-color:var(--info);background:rgba(96,165,250,.07);}
 .btn-dry{background:transparent;color:var(--info);border:1px solid rgba(96,165,250,.3);}
 .btn-dry:not(:disabled):hover{background:rgba(96,165,250,.07);}
+.btn-danger{background:transparent;color:var(--fail);border:1px solid rgba(248,113,113,.3);}
+.btn-danger:not(:disabled):hover{background:rgba(248,113,113,.07);}
 .btn-sm{padding:3px 9px;font-size:10px;}
+.btn-success{background:var(--pass);color:#000;}
+.btn-success:not(:disabled):hover{background:#6ee7b7;}
 
 /* MAIN */
 main{max-width:1200px;margin:0 auto;padding:28px;display:flex;flex-direction:column;gap:28px;}
-
-/* SECTION LABEL */
 .section-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;}
 
 /* INSTANCE BLOCK */
@@ -78,15 +82,12 @@ main{max-width:1200px;margin:0 auto;padding:28px;display:flex;flex-direction:col
 
 /* LIBRARY GRID */
 .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding-left:16px;}
-
-/* LIBRARY CARD */
 .lib-card{background:var(--s1);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s;}
 .lib-card.success{border-top:2px solid var(--pass);}
 .lib-card.skipped{border-top:2px solid var(--warn);}
 .lib-card.error  {border-top:2px solid var(--fail);}
 .lib-card.dry_run{border-top:2px solid var(--info);}
 .lib-card.idle   {border-top:2px solid var(--border2);}
-
 .lib-top{padding:12px 14px 8px;display:flex;align-items:flex-start;justify-content:space-between;}
 .lib-name{font-weight:600;color:var(--bright);font-size:13px;}
 .lib-type-badge{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:3px;border:1px solid var(--border2);color:var(--muted);}
@@ -94,20 +95,14 @@ main{max-width:1200px;margin:0 auto;padding:28px;display:flex;flex-direction:col
 .lib-type-badge.debrid  {color:var(--accent);border-color:rgba(167,139,250,.3);}
 .lib-type-badge.usenet  {color:var(--info);border-color:rgba(96,165,250,.3);}
 .lib-type-badge.mixed   {color:var(--warn);border-color:rgba(251,191,36,.3);}
-
 .lib-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
 .lib-stat{background:var(--s1);padding:8px 12px;text-align:center;}
 .lsv{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--bright);line-height:1.2;}
-.lsv.pass{color:var(--pass);}
-.lsv.fail{color:var(--fail);}
-.lsv.warn{color:var(--warn);}
-.lsv.info{color:var(--info);}
+.lsv.pass{color:var(--pass);}.lsv.fail{color:var(--fail);}.lsv.warn{color:var(--warn);}.lsv.info{color:var(--info);}
 .lsl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
-
 .lib-paths{padding:6px 14px;display:flex;flex-direction:column;gap:2px;}
 .lib-path{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;}
 .lib-path-type{font-size:9px;padding:1px 4px;border-radius:2px;background:var(--s2);}
-
 .lib-footer{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);}
 .lib-ts{font-size:11px;color:var(--muted);}
 .lib-ts b{color:var(--text);}
@@ -119,29 +114,22 @@ main{max-width:1200px;margin:0 auto;padding:28px;display:flex;flex-direction:col
 .hfilters{display:flex;gap:5px;}
 .fbtn{font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
 .fbtn.active,.fbtn:hover{background:var(--s2);color:var(--bright);}
-
 table.htable{width:100%;border-collapse:collapse;}
 .htable th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:7px 12px;border-bottom:1px solid var(--border);font-weight:500;}
 .htable td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
 .htable tr:last-child td{border-bottom:none;}
 .htable tr:hover td{background:rgba(255,255,255,.012);}
-
 .badge{display:inline-block;padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;}
 .badge-success{background:rgba(52,211,153,.12);color:var(--pass);}
 .badge-skipped{background:rgba(251,191,36,.12);color:var(--warn);}
 .badge-error  {background:rgba(248,113,113,.12);color:var(--fail);}
 .badge-dry_run{background:rgba(96,165,250,.12);color:var(--info);}
-
 .ts{font-family:var(--mono);font-size:11px;color:var(--muted);}
 .inst-tag{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--s2);border-radius:3px;padding:1px 5px;}
 .lib-tag{font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(167,139,250,.1);border-radius:3px;padding:1px 5px;}
-
 .mini-checks{display:flex;gap:3px;flex-wrap:wrap;}
 .mdot{width:6px;height:6px;border-radius:50%;}
-.mdot.pass{background:var(--pass);}
-.mdot.fail{background:var(--fail);}
-
-/* EXPAND ROW */
+.mdot.pass{background:var(--pass);}.mdot.fail{background:var(--fail);}
 .expand-row{display:none;}
 .expand-row.open{display:table-row;}
 .expand-cell{padding:0!important;background:var(--bg)!important;}
@@ -158,9 +146,69 @@ table.htable{width:100%;border-collapse:collapse;}
 .ry{color:var(--muted);font-family:var(--mono);font-size:10px;}
 .rt{font-family:var(--mono);font-size:9px;color:var(--muted);background:var(--s2);border-radius:2px;padding:0 3px;text-transform:uppercase;}
 .empty-removed{color:var(--muted);font-size:11px;font-style:italic;}
-
-/* EMPTY STATE */
 .empty-state{text-align:center;padding:40px;color:var(--muted);font-size:12px;}
+
+/* ── WIZARD ── */
+.wizard-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.wizard-overlay.hidden{display:none;}
+.wizard-card{background:var(--s1);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:780px;overflow:hidden;}
+.wiz-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.wiz-title{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--bright);}
+.wiz-steps{display:flex;gap:6px;align-items:center;}
+.wstep{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:600;border:1px solid var(--border2);color:var(--muted);transition:all .2s;}
+.wstep.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.wstep.done{background:var(--pass);color:#000;border-color:var(--pass);}
+.wiz-body{padding:24px;}
+.wiz-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+
+/* Wizard form elements */
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.form-input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:12px;color:var(--bright);outline:none;transition:border-color .2s;}
+.form-input:focus{border-color:var(--accent);}
+.form-input.error{border-color:var(--fail);}
+.form-input.success{border-color:var(--pass);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+.form-hint.error{color:var(--fail);}
+.form-hint.success{color:var(--pass);}
+
+select.form-input{cursor:pointer;}
+select.form-input option{background:var(--s2);}
+
+/* Instance list in wizard */
+.inst-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.inst-item{background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.inst-item-name{font-weight:600;color:var(--bright);font-size:13px;}
+.inst-item-url{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.inst-item-libs{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* Library editor in wizard */
+.lib-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.lib-item{background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;}
+.lib-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.lib-item-name{font-weight:600;color:var(--bright);}
+
+/* Path editor */
+.path-list{display:flex;flex-direction:column;gap:6px;margin:8px 0;}
+.path-item{background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:8px 12px;display:flex;align-items:center;gap:8px;}
+.path-item-path{font-family:var(--mono);font-size:11px;color:var(--text);flex:1;}
+.path-item-type{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--muted);background:var(--s2);padding:1px 5px;border-radius:3px;}
+
+/* File browser */
+.browser-wrap{background:var(--bg);border:1px solid var(--border2);border-radius:6px;overflow:hidden;margin-top:8px;}
+.browser-path{padding:8px 12px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.browser-entries{max-height:200px;overflow-y:auto;}
+.browser-entry{padding:7px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;}
+.browser-entry:last-child{border-bottom:none;}
+.browser-entry:hover{background:var(--s1);}
+.browser-entry-icon{font-size:13px;}
+.browser-entry-name{font-family:var(--mono);font-size:11px;color:var(--text);}
+.browser-entry-link{font-size:9px;color:var(--muted);}
+.browser-select-btn{padding:6px 12px;border-top:1px solid var(--border);text-align:right;}
+
+/* Divider */
+.wiz-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
 
 /* SPINNER */
 .spin{display:inline-block;width:10px;height:10px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .5s linear infinite;}
@@ -176,21 +224,9 @@ table.htable{width:100%;border-collapse:collapse;}
 @media(max-width:700px){
   .lib-grid{grid-template-columns:1fr;padding-left:0;}
   .expand-grid{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
   main{padding:14px;}
 }
-/* SETUP PROMPT */
-.setup-wrap{max-width:700px;margin:48px auto;padding:0 28px;}
-.setup-card{background:var(--s1);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.setup-hdr{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
-.setup-icon{font-size:22px;}
-.setup-title{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--bright);}
-.setup-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.setup-body{padding:24px;}
-.setup-body p{margin-bottom:12px;line-height:1.7;}
-.setup-body h3{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 7px;}
-.setup-body h3:first-child{margin-top:0;}
-pre.scode{background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--text);overflow-x:auto;line-height:1.6;margin-bottom:12px;white-space:pre;}
-.setup-note{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--warn);margin-top:14px;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -201,12 +237,16 @@ pre.scode{background:var(--bg);border:1px solid var(--border2);border-radius:6px
     <span class="logo-text">emptyarr<span class="logo-sub"> / plex trash watchdog</span></span>
   </div>
   <div class="hdr-right">
+    {% if auth_enabled %}
+    <span class="auth-badge on">🔒 auth on</span>
+    {% endif %}
     <div class="sched-wrap">
       <button class="toggle-track" id="sched-toggle" onclick="toggleScheduling()">
         <div class="toggle-thumb"></div>
       </button>
       <span class="sched-label" id="sched-label">loading…</span>
     </div>
+    <button class="btn btn-ghost" onclick="openWizard()" id="btn-wizard">⚙ setup</button>
     <button class="btn btn-ghost" onclick="runChecks()" id="btn-checks">check</button>
     <button class="btn btn-dry"   onclick="dryRunAll()" id="btn-dryrun">◎ dry run</button>
     <button class="btn btn-primary" onclick="runAll()"  id="btn-all">▶ run all</button>
@@ -214,54 +254,14 @@ pre.scode{background:var(--bg);border:1px solid var(--border2);border-radius:6px
 </header>
 
 {% if config_missing %}
-<div class="setup-wrap">
-  <div class="setup-card">
-    <div class="setup-hdr">
-      <span class="setup-icon">⚙️</span>
-      <div>
-        <div class="setup-title">No configuration found</div>
-        <div class="setup-sub">emptyarr is running but needs a config.yml to get started</div>
-      </div>
-    </div>
-    <div class="setup-body">
-      <p>Create a <code>config.yml</code> file and mount it into the container at <code>/app/data/config.yml</code>.</p>
-
-      <h3>Step 1 — Create the config file on your host</h3>
-      <pre class="scode">cp /path/to/emptyarr/data/config.yml.example /path/to/emptyarr/data/config.yml
-# Then edit config.yml with your Plex URLs, library paths etc.</pre>
-
-      <h3>Step 2 — Mount it into the container</h3>
-      <p>In your <code>docker-compose.yml</code> volumes section:</p>
-      <pre class="scode">volumes:
-  - ./data/config.yml:/app/data/config.yml:ro</pre>
-      <p>Or in the Unraid Docker UI, add a path mapping:</p>
-      <pre class="scode">Host path:      /mnt/cache/appdata/emptyarr/data/config.yml
-Container path: /app/data/config.yml
-Access mode:    Read Only</pre>
-
-      <h3>Step 3 — Set your secrets as environment variables</h3>
-      <p>Tokens and API keys can be set in the Unraid Docker UI or your <code>.env</code> file — they override the config.yml values:</p>
-      <pre class="scode">PLEX_TOKEN_STREAMSTEAD=your_token
-PLEX_TOKEN_STREAMSTEAD_UNLIMITED=your_token
-RD_API_KEY=your_rd_key
-DISCORD_WEBHOOK=https://discord.com/api/webhooks/...</pre>
-
-      <h3>Step 4 — Restart the container</h3>
-      <pre class="scode">docker compose up -d</pre>
-
-      <div class="setup-note">
-        💡 The config.yml file must exist on the <strong>host</strong> before the container starts —
-        if the file doesn't exist when Docker mounts it, Docker creates a directory instead of a file.
-        Always create the file first, then start the container.
-      </div>
-
-      <h3>Need a config.yml template?</h3>
-      <p>A fully commented example is included in the repo at <code>data/config.yml.example</code>.
-      It covers both Plex instances, mixed physical/debrid libraries, and all available options.</p>
-    </div>
+<main>
+  <div style="max-width:600px;margin:40px auto;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">⚙️</div>
+    <div style="font-family:var(--sans);font-size:18px;font-weight:700;color:var(--bright);margin-bottom:8px;">Welcome to emptyarr</div>
+    <div style="color:var(--muted);margin-bottom:24px;">No configuration found. Use the setup wizard to get started.</div>
+    <button class="btn btn-primary" style="font-size:13px;padding:10px 24px;" onclick="openWizard()">⚙ Open Setup Wizard</button>
   </div>
-</div>
-
+</main>
 {% else %}
 <main>
   {% for inst in instances %}
@@ -279,18 +279,14 @@ DISCORD_WEBHOOK=https://discord.com/api/webhooks/...</pre>
         </div>
       </div>
     </div>
-
     <div class="lib-grid">
       {% for lib in inst.libraries %}
       {% set uid = inst.name | replace(' ','_') ~ '_' ~ lib.name | replace(' ','_') %}
       <div class="lib-card idle" id="lcard-{{ uid }}">
         <div class="lib-top">
-          <div>
-            <div class="lib-name">{{ lib.name }}</div>
-          </div>
+          <div><div class="lib-name">{{ lib.name }}</div></div>
           <span class="lib-type-badge {{ lib.type }}">{{ lib.type }}</span>
         </div>
-
         <div class="lib-stats">
           <div class="lib-stat">
             <div class="lsv" id="ls-status-{{ uid }}">—</div>
@@ -305,19 +301,14 @@ DISCORD_WEBHOOK=https://discord.com/api/webhooks/...</pre>
             <div class="lsl">Next Run</div>
           </div>
         </div>
-
         <div class="lib-paths">
           {% for p in lib.paths %}
           <div class="lib-path">
-            <span class="lib-path-type">{{ p.type }}</span>
-            {{ p.path }}
+            <span class="lib-path-type">{{ p.type }}</span>{{ p.path }}
           </div>
           {% endfor %}
-          <div style="margin-top:4px;">
-            <span class="ts" style="font-size:10px;">{{ lib.cron }}</span>
-          </div>
+          <div style="margin-top:4px;"><span class="ts" style="font-size:10px;">{{ lib.cron }}</span></div>
         </div>
-
         <div class="lib-footer">
           <span class="lib-ts" id="ls-ts-{{ uid }}">no runs yet</span>
           <div class="lib-btns">
@@ -352,19 +343,12 @@ DISCORD_WEBHOOK=https://discord.com/api/webhooks/...</pre>
       <table class="htable">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Instance</th>
-            <th>Library</th>
-            <th>Status</th>
-            <th>Checks</th>
-            <th>Message</th>
-            <th>Removed</th>
+            <th>Time</th><th>Instance</th><th>Library</th>
+            <th>Status</th><th>Checks</th><th>Message</th><th>Removed</th>
           </tr>
         </thead>
         <tbody id="htbody">
-          <tr><td colspan="7">
-            <div class="empty-state">⏳ No runs yet — click "run all" or wait for the cron</div>
-          </td></tr>
+          <tr><td colspan="7"><div class="empty-state">⏳ No runs yet</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -372,29 +356,53 @@ DISCORD_WEBHOOK=https://discord.com/api/webhooks/...</pre>
 </main>
 {% endif %}
 
+<!-- ── WIZARD OVERLAY ── -->
+<div class="wizard-overlay hidden" id="wizard-overlay">
+  <div class="wizard-card">
+    <div class="wiz-header">
+      <span class="wiz-title" id="wiz-title">Setup Wizard</span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="wiz-steps">
+          <div class="wstep active" id="wstep-1">1</div>
+          <div style="width:20px;height:1px;background:var(--border2)"></div>
+          <div class="wstep" id="wstep-2">2</div>
+          <div style="width:20px;height:1px;background:var(--border2)"></div>
+          <div class="wstep" id="wstep-3">3</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeWizard()">✕ close</button>
+      </div>
+    </div>
+    <div class="wiz-body" id="wiz-body">
+      <!-- Dynamic content rendered by JS -->
+    </div>
+    <div class="wiz-footer" id="wiz-footer">
+      <button class="btn btn-ghost" id="wiz-back" onclick="wizBack()">← back</button>
+      <button class="btn btn-primary" id="wiz-next" onclick="wizNext()">next →</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-let _history = [];
-let _filter  = 'all';
-let _expanded = new Set();
-// Only populated when config is present — safe empty fallback otherwise
 const _instances = {{ instances | tojson }};
 const _configMissing = {{ 'true' if config_missing else 'false' }};
+let _history = [], _filter = 'all', _expanded = new Set();
 
-// If no config, disable header buttons and bail out of polling
-if (_configMissing) {
-  document.addEventListener('DOMContentLoaded', () => {
-    ['btn-checks','btn-dryrun','btn-all','sched-toggle'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.disabled = true;
-    });
-    const lbl = document.getElementById('sched-label');
-    if (lbl) { lbl.textContent = 'no config'; }
-  });
-}
+// ── Wizard state ────────────────────────────────────────────────────────────
+let _wizStep = 1;
+let _wizData = {
+  instances: [],
+  discord_webhook: '',
+  notify_success: false,
+  notify_failure: true,
+  notify_skip: true,
+};
+let _wizEditingInstance = null;  // index of instance being edited
+let _wizEditingLibrary  = null;  // index of library being edited
+let _browserCallback = null;     // function to call with selected path
 
-// ── utils ──
+// ── Utils ───────────────────────────────────────────────────────────────────
 function toast(msg, type=''){
   const el=document.getElementById('toast');
   el.textContent=msg; el.className='show'+(type?` t-${type}`:'');
@@ -413,12 +421,10 @@ function fmtRel(iso){
   const m=Math.floor(diff/60),s=diff%60;
   return m>0?`${m}m ${s}s`:`${s}s`;
 }
-function uid(instName,libName){
-  return instName.replace(/ /g,'_')+'_'+libName.replace(/ /g,'_');
-}
+function uid(i,l){return i.replace(/ /g,'_')+'_'+l.replace(/ /g,'_');}
 function statusCls(s){return {success:'pass',skipped:'warn',error:'fail',dry_run:'info'}[s]||'';}
 
-// ── scheduling ──
+// ── Scheduling ──────────────────────────────────────────────────────────────
 function applyScheduling(enabled){
   const t=document.getElementById('sched-toggle');
   const l=document.getElementById('sched-label');
@@ -435,7 +441,7 @@ async function toggleScheduling(){
   toast(next?'▶ Scheduling resumed':'⏸ Scheduling paused',next?'pass':'warn');
 }
 
-// ── instance checks ──
+// ── Instance checks ─────────────────────────────────────────────────────────
 function applyInstanceChecks(globalChecks){
   _instances.forEach((inst,i)=>{
     const el=document.getElementById(`inst-checks-${i+1}`);
@@ -446,38 +452,33 @@ function applyInstanceChecks(globalChecks){
         <span class="cdot ${c.pass?'pass':'fail'}"></span>
         <span>${n.replace(/Plex \(/,'').replace(')','')}</span>
       </div>`).join('');
-    el.innerHTML=html||el.innerHTML;
+    if(html) el.innerHTML=html;
   });
 }
 
-// ── library cards ──
-function applyStatus(statusData, nextRuns){
+// ── Library cards ───────────────────────────────────────────────────────────
+function applyStatus(statusData,nextRuns){
   _instances.forEach(inst=>{
-    const instSt=statusData.instances||[];
-    const instData=instSt.find(i=>i.name===inst.name)||{};
+    const instData=(statusData.instances||[]).find(i=>i.name===inst.name)||{};
     (instData.libraries||[]).forEach(lib=>{
       const u=uid(inst.name,lib.name);
       const st=lib.status||{};
       const card=document.getElementById(`lcard-${u}`);
       if(card) card.className=`lib-card ${st.last_status||'idle'}`;
-
       const sv=document.getElementById(`ls-status-${u}`);
       if(sv){sv.textContent=st.last_status?st.last_status.toUpperCase():'—';sv.className=`lsv ${statusCls(st.last_status)}`;}
-
       const rv=document.getElementById(`ls-removed-${u}`);
       if(rv){rv.textContent=st.removed_count!=null?st.removed_count:'—';rv.className=`lsv ${st.removed_count>0?'pass':''}`;}
-
       const key=`${inst.name}::${lib.name}`;
       const nv=document.getElementById(`ls-next-${u}`);
       if(nv&&nextRuns[key]) nv.textContent=fmtRel(nextRuns[key]);
-
       const tv=document.getElementById(`ls-ts-${u}`);
       if(tv&&st.last_run) tv.innerHTML=`<b>${fmtTime(st.last_run)}</b>`;
     });
   });
 }
 
-// ── history ──
+// ── History ─────────────────────────────────────────────────────────────────
 function setFilter(f,btn){
   _filter=f;
   document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
@@ -486,66 +487,39 @@ function setFilter(f,btn){
 }
 function renderHistory(data){
   const filtered=_filter==='all'?data:data.filter(r=>r.status===_filter);
-  document.getElementById('hcount').textContent=`${filtered.length} / ${data.length} runs`;
-  if(!filtered.length){
-    document.getElementById('htbody').innerHTML=`<tr><td colspan="7"><div class="empty-state">No ${_filter==='all'?'':_filter+' '}runs yet</div></td></tr>`;
-    return;
-  }
-  const rows=filtered.map(run=>{
+  const hcount=document.getElementById('hcount');
+  if(hcount) hcount.textContent=`${filtered.length} / ${data.length} runs`;
+  const tbody=document.getElementById('htbody');
+  if(!tbody) return;
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state">No ${_filter==='all'?'':_filter+' '}runs yet</div></td></tr>`;return;}
+  tbody.innerHTML=filtered.map(run=>{
     const rid=`run-${run.timestamp.replace(/[:.]/g,'-')}`;
     const isOpen=_expanded.has(rid);
     const badge=`<span class="badge badge-${run.status}">${run.status.replace('_',' ')}</span>`;
-    const dots=Object.entries(run.checks||{}).map(([n,c])=>
-      `<span class="mdot ${c.pass?'pass':'fail'}" title="${n}: ${c.detail}"></span>`
-    ).join('');
-    const rem=run.removed_count>0
-      ?`<span style="color:var(--pass);font-family:var(--mono)">${run.removed_count}</span>`
-      :`<span style="color:var(--muted)">0</span>`;
-
-    const checksHtml=Object.entries(run.checks||{}).map(([n,c])=>`
-      <div class="check-row">
-        <span class="mdot ${c.pass?'pass':'fail'}" style="margin-top:4px;flex-shrink:0"></span>
-        <span class="crn">${n}</span>
-        <span class="crd">${c.detail||''}</span>
-      </div>`).join('');
-
-    const removedHtml=run.removed_items&&run.removed_items.length>0
-      ? run.removed_items.map(i=>`
-        <div class="removed-item">
-          <span class="rt">${i.type||''}</span>
-          <span>${i.title}</span>
-          ${i.year?`<span class="ry">${i.year}</span>`:''}
-        </div>`).join('')
-      : `<div class="empty-removed">No items removed</div>`;
-
-    return `
-      <tr class="${isOpen?'expanded':''}" style="cursor:pointer" onclick="toggleExpand('${rid}',this)">
-        <td class="ts">${fmtTime(run.timestamp)}</td>
-        <td><span class="inst-tag">${run.instance}</span></td>
-        <td><span class="lib-tag">${run.library}</span></td>
-        <td>${badge}</td>
-        <td><div class="mini-checks">${dots}</div></td>
-        <td style="font-size:12px;color:var(--text)">${run.message}</td>
-        <td>${rem}</td>
-      </tr>
-      <tr class="expand-row ${isOpen?'open':''}" id="${rid}">
-        <td class="expand-cell" colspan="7">
-          <div class="expand-inner">
-            <div class="expand-grid">
-              <div>
-                <div class="etitle">Health Checks</div>
-                ${checksHtml}
-              </div>
-              <div>
-                <div class="etitle">Removed Items (${run.removed_count})</div>
-                <div class="removed-list">${removedHtml}</div>
-              </div>
-            </div>
+    const dots=Object.entries(run.checks||{}).map(([n,c])=>`<span class="mdot ${c.pass?'pass':'fail'}" title="${n}: ${c.detail}"></span>`).join('');
+    const rem=run.removed_count>0?`<span style="color:var(--pass);font-family:var(--mono)">${run.removed_count}</span>`:`<span style="color:var(--muted)">0</span>`;
+    const checksHtml=Object.entries(run.checks||{}).map(([n,c])=>`<div class="check-row"><span class="mdot ${c.pass?'pass':'fail'}" style="margin-top:4px;flex-shrink:0"></span><span class="crn">${n}</span><span class="crd">${c.detail||''}</span></div>`).join('');
+    const removedHtml=run.removed_items&&run.removed_items.length>0?run.removed_items.map(i=>`<div class="removed-item"><span class="rt">${i.type||''}</span><span>${i.title}</span>${i.year?`<span class="ry">${i.year}</span>`:''}</div>`).join(''):`<div class="empty-removed">No items removed</div>`;
+    return `<tr class="${isOpen?'expanded':''}" style="cursor:pointer" onclick="toggleExpand('${rid}',this)">
+      <td class="ts">${fmtTime(run.timestamp)}</td>
+      <td><span class="inst-tag">${run.instance}</span></td>
+      <td><span class="lib-tag">${run.library}</span></td>
+      <td>${badge}</td>
+      <td><div class="mini-checks">${dots}</div></td>
+      <td style="font-size:12px;color:var(--text)">${run.message}</td>
+      <td>${rem}</td>
+    </tr>
+    <tr class="expand-row ${isOpen?'open':''}" id="${rid}">
+      <td class="expand-cell" colspan="7">
+        <div class="expand-inner">
+          <div class="expand-grid">
+            <div><div class="etitle">Health Checks</div>${checksHtml}</div>
+            <div><div class="etitle">Removed Items (${run.removed_count})</div><div class="removed-list">${removedHtml}</div></div>
           </div>
-        </td>
-      </tr>`;
+        </div>
+      </td>
+    </tr>`;
   }).join('');
-  document.getElementById('htbody').innerHTML=rows;
 }
 function toggleExpand(rid,row){
   const er=document.getElementById(rid);
@@ -554,7 +528,7 @@ function toggleExpand(rid,row){
   else{_expanded.add(rid);er.classList.add('open');row.classList.add('expanded');}
 }
 
-// ── fetch ──
+// ── Fetch ────────────────────────────────────────────────────────────────────
 async function fetchStatus(){
   try{
     const r=await fetch('/api/status'); const d=await r.json();
@@ -567,7 +541,7 @@ async function fetchHistory(){
   try{const r=await fetch('/api/history');_history=await r.json();renderHistory(_history);}catch(e){}
 }
 
-// ── actions ──
+// ── Actions ──────────────────────────────────────────────────────────────────
 async function runChecks(){
   const btn=document.getElementById('btn-checks');
   btn.disabled=true;btn.innerHTML=`<span class="spin"></span>`;
@@ -579,7 +553,6 @@ async function runChecks(){
   }catch(e){toast('Error','fail');}
   finally{btn.disabled=false;btn.textContent='check';}
 }
-
 async function runAll(){
   const btn=document.getElementById('btn-all');
   btn.disabled=true;btn.innerHTML=`<span class="spin"></span> running…`;
@@ -592,20 +565,18 @@ async function runAll(){
   }catch(e){toast('Error','fail');}
   finally{btn.disabled=false;btn.innerHTML='▶ run all';}
 }
-
 async function dryRunAll(){
   const btn=document.getElementById('btn-dryrun');
-  btn.disabled=true;btn.innerHTML=`<span class="spin"></span> scanning…`;
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span>`;
   toast('Dry run — all libraries…');
   try{
     await fetch('/api/dryrun/all',{method:'POST'});
     await new Promise(r=>setTimeout(r,4000));
     await Promise.all([fetchStatus(),fetchHistory()]);
-    toast('◎ Dry run complete — check history','');
+    toast('◎ Dry run complete','');
   }catch(e){toast('Error','fail');}
   finally{btn.disabled=false;btn.innerHTML='◎ dry run';}
 }
-
 async function runLib(inst,lib){
   const u=uid(inst,lib);
   const btn=document.getElementById(`btn-run-${u}`);
@@ -619,7 +590,6 @@ async function runLib(inst,lib){
   }catch(e){toast('Error','fail');}
   finally{if(btn){btn.disabled=false;btn.textContent='▶';}}
 }
-
 async function dryRunLib(inst,lib){
   const u=uid(inst,lib);
   const btn=document.getElementById(`btn-dry-${u}`);
@@ -634,8 +604,464 @@ async function dryRunLib(inst,lib){
   finally{if(btn){btn.disabled=false;btn.textContent='◎';}}
 }
 
-// ── poll ──
-if (!_configMissing) {
+// ── WIZARD ───────────────────────────────────────────────────────────────────
+
+function openWizard(){
+  document.getElementById('wizard-overlay').classList.remove('hidden');
+  _wizStep=1;
+  renderWizStep();
+}
+function closeWizard(){
+  document.getElementById('wizard-overlay').classList.add('hidden');
+}
+function setWizStep(n){
+  _wizStep=n;
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById(`wstep-${i}`);
+    if(i<n) el.className='wstep done';
+    else if(i===n) el.className='wstep active';
+    else el.className='wstep';
+  });
+}
+function renderWizStep(){
+  setWizStep(_wizStep);
+  const body=document.getElementById('wiz-body');
+  const back=document.getElementById('wiz-back');
+  const next=document.getElementById('wiz-next');
+  back.style.visibility=_wizStep===1?'hidden':'visible';
+
+  if(_wizStep===1) renderStep1(body,next);
+  else if(_wizStep===2) renderStep2(body,next);
+  else if(_wizStep===3) renderStep3(body,next);
+}
+
+// Step 1: Plex Instances
+function renderStep1(body,next){
+  document.getElementById('wiz-title').textContent='Step 1 — Plex Instances';
+  next.textContent='next →';
+  next.onclick=()=>{if(_wizData.instances.length>0){_wizStep=2;renderWizStep();}else toast('Add at least one Plex instance','fail');};
+
+  body.innerHTML=`
+    <p style="color:var(--muted);margin-bottom:16px;font-size:12px;">
+      Add each Plex instance you want emptyarr to manage. 
+      Tokens are set as environment variables (PLEX_TOKEN_NAME) — not stored in config.
+    </p>
+    <div class="inst-list" id="wiz-inst-list"></div>
+    <button class="btn btn-ghost" onclick="wizAddInstance()">+ Add Plex Instance</button>
+    <div id="wiz-inst-form" style="display:none;margin-top:16px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:16px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Instance Name</label>
+          <input class="form-input" id="wiz-inst-name" placeholder="My Plex" />
+          <div class="form-hint">Used to name the env var: PLEX_TOKEN_MY_PLEX</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plex URL</label>
+          <input class="form-input" id="wiz-inst-url" placeholder="http://192.168.1.100:32400" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plex Token (for testing only — not saved to config)</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" id="wiz-inst-token" type="password" placeholder="Your Plex token" style="flex:1;" />
+          <button class="btn btn-ghost" onclick="wizTestPlex()">test connection</button>
+        </div>
+        <div class="form-hint" id="wiz-inst-hint">Token is used to verify the connection and fetch library names. It will NOT be written to config.yml.</div>
+      </div>
+      <div id="wiz-inst-libs" style="display:none;">
+        <hr class="wiz-divider"/>
+        <div class="form-label" style="margin-bottom:8px;">Available Libraries</div>
+        <div id="wiz-lib-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-success" id="wiz-inst-save" onclick="wizSaveInstance()" style="display:none;">save instance</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('wiz-inst-form').style.display='none'">cancel</button>
+      </div>
+    </div>
+  `;
+  renderInstList();
+}
+
+function renderInstList(){
+  const list=document.getElementById('wiz-inst-list');
+  if(!list) return;
+  if(!_wizData.instances.length){list.innerHTML='';return;}
+  list.innerHTML=_wizData.instances.map((inst,i)=>`
+    <div class="inst-item">
+      <div>
+        <div class="inst-item-name">${inst.name}</div>
+        <div class="inst-item-url">${inst.url}</div>
+        <div class="inst-item-libs">${(inst.libraries||[]).length} librar${(inst.libraries||[]).length===1?'y':'ies'} configured</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="wizEditInstance(${i})">edit</button>
+        <button class="btn btn-danger btn-sm" onclick="wizRemoveInstance(${i})">remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function wizAddInstance(){
+  _wizEditingInstance=null;
+  document.getElementById('wiz-inst-name').value='';
+  document.getElementById('wiz-inst-url').value='';
+  document.getElementById('wiz-inst-token').value='';
+  document.getElementById('wiz-inst-hint').textContent='Token is used to verify the connection and fetch library names. It will NOT be written to config.yml.';
+  document.getElementById('wiz-inst-hint').className='form-hint';
+  document.getElementById('wiz-inst-libs').style.display='none';
+  document.getElementById('wiz-inst-save').style.display='none';
+  document.getElementById('wiz-inst-form').style.display='block';
+}
+
+function wizEditInstance(i){
+  _wizEditingInstance=i;
+  const inst=_wizData.instances[i];
+  document.getElementById('wiz-inst-name').value=inst.name;
+  document.getElementById('wiz-inst-url').value=inst.url;
+  document.getElementById('wiz-inst-token').value='';
+  document.getElementById('wiz-inst-libs').style.display='none';
+  document.getElementById('wiz-inst-save').style.display='block';
+  document.getElementById('wiz-inst-form').style.display='block';
+}
+
+function wizRemoveInstance(i){
+  _wizData.instances.splice(i,1);
+  renderInstList();
+}
+
+async function wizTestPlex(){
+  const url=document.getElementById('wiz-inst-url').value.trim();
+  const token=document.getElementById('wiz-inst-token').value.trim();
+  const hint=document.getElementById('wiz-inst-hint');
+  if(!url||!token){hint.textContent='Enter URL and token first.';hint.className='form-hint error';return;}
+  hint.innerHTML=`<span class="spin"></span> testing…`;hint.className='form-hint';
+  try{
+    const r=await fetch('/api/wizard/test-plex',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,token})});
+    const d=await r.json();
+    if(d.ok){
+      hint.textContent=`✓ ${d.detail}`;hint.className='form-hint success';
+      // Show library checkboxes
+      const libsDiv=document.getElementById('wiz-inst-libs');
+      const checkboxes=document.getElementById('wiz-lib-checkboxes');
+      const name=document.getElementById('wiz-inst-name').value||'';
+      const existing=_wizEditingInstance!==null?(_wizData.instances[_wizEditingInstance].libraries||[]):[];
+      checkboxes.innerHTML=d.libraries.map(lib=>{
+        const isChecked=existing.some(l=>l.name===lib.title);
+        return `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text);">
+          <input type="checkbox" value="${lib.title}" ${isChecked?'checked':''} style="accent-color:var(--accent);" />
+          ${lib.title} <span style="color:var(--muted);font-size:10px;">(${lib.type})</span>
+        </label>`;
+      }).join('');
+      libsDiv.style.display='block';
+      document.getElementById('wiz-inst-save').style.display='inline-flex';
+    } else {
+      hint.textContent=`✗ ${d.error}`;hint.className='form-hint error';
+    }
+  }catch(e){hint.textContent='Connection failed';hint.className='form-hint error';}
+}
+
+function wizSaveInstance(){
+  const name=document.getElementById('wiz-inst-name').value.trim();
+  const url=document.getElementById('wiz-inst-url').value.trim();
+  if(!name||!url){toast('Name and URL are required','fail');return;}
+
+  // Collect selected libraries
+  const checkboxes=document.querySelectorAll('#wiz-lib-checkboxes input[type=checkbox]:checked');
+  const selectedLibNames=[...checkboxes].map(cb=>cb.value);
+
+  // Preserve existing library configs for already-configured ones
+  const existing=_wizEditingInstance!==null?(_wizData.instances[_wizEditingInstance].libraries||[]):[];
+  const libraries=selectedLibNames.map(libName=>{
+    const existingLib=existing.find(l=>l.name===libName);
+    return existingLib || {
+      name: libName,
+      type: 'physical',
+      cron: '0 * * * *',
+      paths: []
+    };
+  });
+
+  const instData={name,url,libraries};
+  if(_wizEditingInstance!==null){
+    _wizData.instances[_wizEditingInstance]=instData;
+  } else {
+    _wizData.instances.push(instData);
+  }
+  document.getElementById('wiz-inst-form').style.display='none';
+  renderInstList();
+  toast(`✓ ${name} saved`,'pass');
+}
+
+// Step 2: Library paths
+function renderStep2(body,next){
+  document.getElementById('wiz-title').textContent='Step 2 — Library Paths';
+  next.textContent='next →';
+  next.onclick=()=>{_wizStep=3;renderWizStep();};
+
+  const allLibs=[];
+  _wizData.instances.forEach(inst=>{
+    (inst.libraries||[]).forEach(lib=>allLibs.push({inst:inst.name,lib}));
+  });
+
+  body.innerHTML=`
+    <p style="color:var(--muted);margin-bottom:16px;font-size:12px;">
+      Configure the filesystem path(s) for each library. 
+      Use the browser to navigate your mounted paths inside the container.
+    </p>
+    <div id="wiz-lib-configs"></div>
+  `;
+  renderLibConfigs();
+}
+
+function renderLibConfigs(){
+  const container=document.getElementById('wiz-lib-configs');
+  if(!container) return;
+  let html='';
+  _wizData.instances.forEach((inst,ii)=>{
+    (inst.libraries||[]).forEach((lib,li)=>{
+      html+=`
+        <div class="lib-item" style="margin-bottom:12px;">
+          <div class="lib-item-header">
+            <div>
+              <span class="lib-item-name">${lib.name}</span>
+              <span style="color:var(--muted);font-size:11px;margin-left:8px;">— ${inst.name}</span>
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:10px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Library Type</label>
+              <select class="form-input" id="libtype-${ii}-${li}" onchange="wizUpdateLibType(${ii},${li},this.value)">
+                <option value="physical" ${lib.type==='physical'?'selected':''}>physical — real files</option>
+                <option value="debrid" ${lib.type==='debrid'?'selected':''}>debrid — symlinks to rclone mount</option>
+                <option value="usenet" ${lib.type==='usenet'?'selected':''}>usenet — symlinks to usenet mount</option>
+                <option value="mixed" ${lib.type==='mixed'?'selected':''}>mixed — both physical and debrid</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Cron Schedule</label>
+              <select class="form-input" id="libcron-${ii}-${li}" onchange="wizUpdateLibCron(${ii},${li},this.value)">
+                <option value="*/30 * * * *" ${lib.cron==='*/30 * * * *'?'selected':''}>Every 30 minutes</option>
+                <option value="0 * * * *" ${lib.cron==='0 * * * *'?'selected':''}>Every hour</option>
+                <option value="0 */2 * * *" ${lib.cron==='0 */2 * * *'?'selected':''}>Every 2 hours</option>
+                <option value="0 */6 * * *" ${lib.cron==='0 */6 * * *'?'selected':''}>Every 6 hours</option>
+                <option value="0 2 * * *" ${lib.cron==='0 2 * * *'?'selected':''}>Daily at 2am</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="form-label" style="margin-bottom:6px;">Paths</div>
+            <div id="paths-${ii}-${li}">
+              ${renderPathItems(lib.paths||[], ii, li)}
+            </div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="wizAddPath(${ii},${li})">+ add path</button>
+          </div>
+          <div id="path-form-${ii}-${li}" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:12px;">
+            <div class="form-row">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Path Type</label>
+                <select class="form-input" id="newpath-type-${ii}-${li}">
+                  <option value="physical">physical</option>
+                  <option value="debrid">debrid</option>
+                  <option value="usenet">usenet</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Min Files (absolute floor)</label>
+                <input class="form-input" id="newpath-minfiles-${ii}-${li}" type="number" value="50" min="1" />
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:10px;">
+              <label class="form-label">Path</label>
+              <div style="display:flex;gap:8px;">
+                <input class="form-input" id="newpath-path-${ii}-${li}" placeholder="/mnt/symlink_media/symlinks/radarr" style="flex:1;" />
+                <button class="btn btn-ghost btn-sm" onclick="openBrowser(${ii},${li})">browse</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="btn btn-success btn-sm" onclick="wizSavePath(${ii},${li})">add path</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('path-form-${ii}-${li}').style.display='none'">cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  });
+  container.innerHTML=html||'<p style="color:var(--muted)">No libraries configured. Go back to Step 1.</p>';
+}
+
+function renderPathItems(paths, ii, li){
+  if(!paths.length) return '<div style="color:var(--muted);font-size:11px;margin-bottom:6px;">No paths configured yet</div>';
+  return paths.map((p,pi)=>`
+    <div class="path-item">
+      <span class="path-item-type">${p.type}</span>
+      <span class="path-item-path">${p.path}</span>
+      <span style="color:var(--muted);font-size:10px;font-family:var(--mono);">${p.min_files} files min</span>
+      <button class="btn btn-danger btn-sm" onclick="wizRemovePath(${ii},${li},${pi})" style="padding:2px 7px;">✕</button>
+    </div>
+  `).join('');
+}
+
+function wizUpdateLibType(ii,li,val){_wizData.instances[ii].libraries[li].type=val;}
+function wizUpdateLibCron(ii,li,val){_wizData.instances[ii].libraries[li].cron=val;}
+function wizAddPath(ii,li){document.getElementById(`path-form-${ii}-${li}`).style.display='block';}
+function wizRemovePath(ii,li,pi){
+  _wizData.instances[ii].libraries[li].paths.splice(pi,1);
+  document.getElementById(`paths-${ii}-${li}`).innerHTML=renderPathItems(_wizData.instances[ii].libraries[li].paths,ii,li);
+}
+function wizSavePath(ii,li){
+  const path=document.getElementById(`newpath-path-${ii}-${li}`).value.trim();
+  const type=document.getElementById(`newpath-type-${ii}-${li}`).value;
+  const minFiles=parseInt(document.getElementById(`newpath-minfiles-${ii}-${li}`).value)||50;
+  if(!path){toast('Enter a path','fail');return;}
+  const pathObj={path,type,min_files:minFiles,min_threshold:90};
+  if(type==='debrid'||type==='usenet'){
+    pathObj.provider_checks=[];
+  }
+  _wizData.instances[ii].libraries[li].paths.push(pathObj);
+  document.getElementById(`paths-${ii}-${li}`).innerHTML=renderPathItems(_wizData.instances[ii].libraries[li].paths,ii,li);
+  document.getElementById(`path-form-${ii}-${li}`).style.display='none';
+}
+
+// File browser
+async function openBrowser(ii,li){
+  _browserCallback=(path)=>{
+    const input=document.getElementById(`newpath-path-${ii}-${li}`);
+    if(input) input.value=path;
+  };
+  await showBrowser('/');
+}
+async function showBrowser(path){
+  try{
+    const r=await fetch('/api/wizard/browse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})});
+    const d=await r.json();
+    if(!d.ok){toast(d.error,'fail');return;}
+
+    // Create or update browser modal
+    let modal=document.getElementById('browser-modal');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.id='browser-modal';
+      modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:flex;align-items:center;justify-content:center;';
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML=`
+      <div style="background:var(--s1);border:1px solid var(--border2);border-radius:10px;width:500px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:var(--mono);font-size:12px;color:var(--bright);">Browse filesystem</span>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('browser-modal').remove()">✕</button>
+        </div>
+        <div class="browser-wrap" style="border:none;border-radius:0;flex:1;overflow:hidden;">
+          <div class="browser-path">
+            ${d.parent!==null?`<span style="cursor:pointer;color:var(--info);" onclick="showBrowser('${d.parent}')">← up</span>`:''}
+            <span>${d.path}</span>
+          </div>
+          <div class="browser-entries">
+            ${d.entries.map(e=>`
+              <div class="browser-entry" onclick="showBrowser('${e.path}')">
+                <span class="browser-entry-icon">📁</span>
+                <span class="browser-entry-name">${e.name}</span>
+                ${e.is_link?'<span class="browser-entry-link">symlink</span>':''}
+              </div>
+            `).join('')||'<div style="padding:16px;color:var(--muted);font-size:12px;">Empty directory</div>'}
+          </div>
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted);flex:1;">Select: ${d.path}</span>
+          <button class="btn btn-success btn-sm" onclick="selectBrowserPath('${d.path}')">use this path</button>
+        </div>
+      </div>
+    `;
+  }catch(e){toast('Browse failed','fail');}
+}
+function selectBrowserPath(path){
+  if(_browserCallback) _browserCallback(path);
+  const modal=document.getElementById('browser-modal');
+  if(modal) modal.remove();
+}
+
+// Step 3: Notifications + Save
+function renderStep3(body,next){
+  document.getElementById('wiz-title').textContent='Step 3 — Notifications & Save';
+  next.textContent='💾 save config';
+  next.onclick=wizSaveConfig;
+
+  body.innerHTML=`
+    <p style="color:var(--muted);margin-bottom:16px;font-size:12px;">
+      Optionally configure Discord notifications, then save your config.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Discord Webhook URL (optional)</label>
+      <input class="form-input" id="wiz-discord" value="${_wizData.discord_webhook||''}" placeholder="https://discord.com/api/webhooks/..." />
+    </div>
+    <div class="form-label" style="margin-bottom:8px;">Notify on:</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text);">
+        <input type="checkbox" id="wiz-notify-success" ${_wizData.notify_success?'checked':''} style="accent-color:var(--accent);" />
+        Success — trash was emptied
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text);">
+        <input type="checkbox" id="wiz-notify-failure" ${_wizData.notify_failure?'checked':''} style="accent-color:var(--accent);" />
+        Failure — health checks failed, empty skipped
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text);">
+        <input type="checkbox" id="wiz-notify-skip" ${_wizData.notify_skip?'checked':''} style="accent-color:var(--accent);" />
+        Skip — something prevented the run
+      </label>
+    </div>
+    <hr class="wiz-divider"/>
+    <div style="background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--warn);line-height:1.6;">
+      ⚠️ Saving will write <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">/app/data/config.yml</code> inside the container.
+      The container needs to be restarted to pick up the new config.
+      Plex tokens are NOT written to the config — set them as environment variables:
+      <br/><br/>
+      ${_wizData.instances.map(inst=>{
+        const safe=inst.name.toUpperCase().replace(/ /g,'_').replace(/-/g,'_');
+        return `<code style="background:var(--bg);padding:1px 6px;border-radius:3px;display:inline-block;margin:2px 0;">PLEX_TOKEN_${safe}</code>`;
+      }).join('<br/>')}
+    </div>
+    <div id="wiz-save-result" style="margin-top:12px;"></div>
+  `;
+}
+
+async function wizSaveConfig(){
+  _wizData.discord_webhook=document.getElementById('wiz-discord').value.trim();
+  _wizData.notify_success=document.getElementById('wiz-notify-success').checked;
+  _wizData.notify_failure=document.getElementById('wiz-notify-failure').checked;
+  _wizData.notify_skip=document.getElementById('wiz-notify-skip').checked;
+
+  const btn=document.getElementById('wiz-next');
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span> saving…`;
+
+  try{
+    const r=await fetch('/api/wizard/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(_wizData)});
+    const d=await r.json();
+    const result=document.getElementById('wiz-save-result');
+    if(d.ok){
+      result.innerHTML=`<div style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:12px;color:var(--pass);font-size:12px;">
+        ✓ Config saved successfully!<br/>
+        <span style="color:var(--muted);">Restart the container to apply the new configuration.</span>
+      </div>`;
+      btn.innerHTML='✓ saved';
+      toast('Config saved — restart container to apply','pass');
+    } else {
+      result.innerHTML=`<div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:12px;color:var(--fail);font-size:12px;">✗ ${d.error}</div>`;
+      btn.disabled=false;btn.innerHTML='💾 save config';
+    }
+  }catch(e){
+    toast('Save failed','fail');
+    btn.disabled=false;btn.innerHTML='💾 save config';
+  }
+}
+
+function wizBack(){
+  if(_wizStep>1){_wizStep--;renderWizStep();}
+}
+function wizNext(){
+  // handled per-step via onclick
+}
+
+// ── Polling ──────────────────────────────────────────────────────────────────
+if(!_configMissing){
   setInterval(fetchStatus,15000);
   setInterval(fetchHistory,20000);
   fetchStatus();

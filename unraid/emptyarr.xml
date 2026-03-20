@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Container version="2">
-  <Name>emptyarr</Name>
+  <n>emptyarr</n>
   <Repository>ghcr.io/jjbobzin/emptyarr:latest</Repository>
   <Registry>https://github.com/jjbobzin/emptyarr/pkgs/container/emptyarr</Registry>
   <Network>bridge</Network>
@@ -13,8 +13,8 @@
     Supports multiple Plex instances, mixed physical/debrid libraries,
     per-library cron schedules, dry runs, and Discord notifications.
 
-    Requires a config.yml — copy config.yml.example from the repo, fill in
-    your Plex instances and library paths, then map it to /app/data/config.yml.
+    Use the built-in setup wizard at http://[IP]:8222 to configure your
+    Plex instances and libraries — no manual config file editing required.
     Set your Plex tokens and API keys as environment variables below.
   </Overview>
   <Category>MediaApp:Video Tools:</Category>
@@ -27,7 +27,7 @@
           Target="8222"
           Default="8222"
           Mode="tcp"
-          Description="Port for the emptyarr web interface."
+          Description="Port for the emptyarr web interface and setup wizard."
           Type="Port"
           Display="always"
           Required="true"
@@ -38,69 +38,60 @@
           Target="/app/data/config.yml"
           Default="/mnt/cache/appdata/emptyarr/config.yml"
           Mode="ro"
-          Description="Full path to your config.yml file on the host. IMPORTANT: this file must exist before starting the container — if it does not exist Docker will create a directory here instead. Copy config.yml.example from the repo and fill it in first."
+          Description="Path to your config.yml on the host. Use the setup wizard to create this file. IMPORTANT: the file must exist before starting the container — if it does not exist Docker will create a directory here instead. Create an empty file first: touch /mnt/cache/appdata/emptyarr/config.yml"
           Type="Path"
           Display="always"
           Required="true"
           Mask="false">/mnt/cache/appdata/emptyarr/config.yml</Config>
 
-  <!-- ── Media paths ────────────────────────────────────────────────────── -->
-  <Config Name="Debrid Symlink Path 1 (optional)"
-          Target="/media/symlinks/movie"
-          Default=""
+  <!-- ── Media root mounts ──────────────────────────────────────────────── -->
+  <Config Name="Symlink Media Root"
+          Target="/mnt/symlink_media"
+          Default="/mnt/symlink_media"
           Mode="ro"
-          Description="Host path to your debrid symlink movie library. Must match the container path declared in config.yml. Leave blank if not using debrid symlinks for movies."
+          Description="Root path containing your symlink media (debrid/usenet symlinks and mounts). Mount the root folder — the wizard will let you select specific subfolders. The container path must match so symlink targets can resolve."
           Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false">/mnt/symlink_media</Config>
+
+  <Config Name="Physical Media Root"
+          Target="/mnt/user/media"
+          Default="/mnt/user/media"
+          Mode="ro"
+          Description="Root path containing your physical media files. Mount the root folder — the wizard will let you select specific subfolders."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false">/mnt/user/media</Config>
+
+  <!-- ── Web UI auth ────────────────────────────────────────────────────── -->
+  <Config Name="Web UI Username (optional)"
+          Target="EMPTYARR_USERNAME"
+          Default=""
+          Mode=""
+          Description="Username to protect the web UI with basic auth. Leave blank to disable authentication (fine for local network use)."
+          Type="Variable"
           Display="always"
           Required="false"
           Mask="false"></Config>
 
-  <Config Name="Debrid Symlink Path 2 (optional)"
-          Target="/media/symlinks/tv"
+  <Config Name="Web UI Password (optional)"
+          Target="EMPTYARR_PASSWORD"
           Default=""
-          Mode="ro"
-          Description="Host path to your debrid symlink TV library. Must match the container path declared in config.yml. Leave blank if not using debrid symlinks for TV."
-          Type="Path"
+          Mode=""
+          Description="Password to protect the web UI. Only used if Username is also set."
+          Type="Variable"
           Display="always"
           Required="false"
-          Mask="false"></Config>
-
-  <Config Name="Physical Media Path 1 (optional)"
-          Target="/media/physical/movies"
-          Default=""
-          Mode="ro"
-          Description="Host path to your physical movie files. Must match the container path declared in config.yml."
-          Type="Path"
-          Display="always"
-          Required="false"
-          Mask="false"></Config>
-
-  <Config Name="Physical Media Path 2 (optional)"
-          Target="/media/physical/tv"
-          Default=""
-          Mode="ro"
-          Description="Host path to your physical TV files. Must match the container path declared in config.yml."
-          Type="Path"
-          Display="always"
-          Required="false"
-          Mask="false"></Config>
-
-  <Config Name="Debrid Mount Path (optional)"
-          Target="/mnt/debrid/mount"
-          Default=""
-          Mode="ro"
-          Description="Your rclone/debrid mount path. Required if using debrid libraries — symlink targets must resolve inside the container. The container path must exactly match what your symlinks reference. Example: if symlinks point to /mnt/symlink_media/decypharr/mount/... then map that host path to the same container path."
-          Type="Path"
-          Display="always"
-          Required="false"
-          Mask="false"></Config>
+          Mask="true"></Config>
 
   <!-- ── Plex tokens ────────────────────────────────────────────────────── -->
   <Config Name="Plex Token (Instance 1)"
           Target="PLEX_TOKEN_INSTANCE_1"
           Default=""
           Mode=""
-          Description="Plex token for your first Plex instance. The variable name must match your instance name in config.yml — uppercased with spaces/hyphens replaced by underscores. Example: instance named 'My Plex' uses PLEX_TOKEN_MY_PLEX. Find your token at: https://support.plex.tv/articles/204059436"
+          Description="Plex token for your first instance. Rename this variable to match your instance name from the wizard — uppercased with spaces/hyphens as underscores. Example: instance 'My Plex' uses PLEX_TOKEN_MY_PLEX. Find token at: https://support.plex.tv/articles/204059436"
           Type="Variable"
           Display="always"
           Required="false"
@@ -110,7 +101,7 @@
           Target="PLEX_TOKEN_INSTANCE_2"
           Default=""
           Mode=""
-          Description="Plex token for your second Plex instance (if you have one). Rename this variable to match your second instance name in config.yml."
+          Description="Plex token for a second instance (if you have one). Rename to match your instance name."
           Type="Variable"
           Display="always"
           Required="false"
@@ -131,7 +122,7 @@
           Target="AD_API_KEY"
           Default=""
           Mode=""
-          Description="AllDebrid API key for provider health checks. Optional — leave blank to skip."
+          Description="AllDebrid API key. Optional."
           Type="Variable"
           Display="advanced"
           Required="false"
@@ -141,7 +132,7 @@
           Target="TB_API_KEY"
           Default=""
           Mode=""
-          Description="Torbox API key for provider health checks. Optional — leave blank to skip."
+          Description="Torbox API key. Optional."
           Type="Variable"
           Display="advanced"
           Required="false"
@@ -151,7 +142,7 @@
           Target="DL_API_KEY"
           Default=""
           Mode=""
-          Description="Debrid-Link API key for provider health checks. Optional — leave blank to skip."
+          Description="Debrid-Link API key. Optional."
           Type="Variable"
           Display="advanced"
           Required="false"
@@ -162,7 +153,7 @@
           Target="DISCORD_WEBHOOK"
           Default=""
           Mode=""
-          Description="Discord webhook URL for failure/skip/success notifications. Optional — leave blank to disable. Create a webhook in your Discord server settings."
+          Description="Discord webhook URL for notifications. Optional — configure in the setup wizard instead."
           Type="Variable"
           Display="always"
           Required="false"
@@ -173,7 +164,7 @@
           Target="PUID"
           Default="99"
           Mode=""
-          Description="User ID the container runs as. On Unraid this should be 99 (nobody). Change only if you have specific permission requirements."
+          Description="User ID. On Unraid use 99 (nobody)."
           Type="Variable"
           Display="always"
           Required="false"
@@ -183,7 +174,7 @@
           Target="PGID"
           Default="100"
           Mode=""
-          Description="Group ID the container runs as. On Unraid this should be 100 (users). Change only if you have specific permission requirements."
+          Description="Group ID. On Unraid use 100 (users)."
           Type="Variable"
           Display="always"
           Required="false"
@@ -193,7 +184,7 @@
           Target="TZ"
           Default="America/New_York"
           Mode=""
-          Description="Your local timezone for accurate cron scheduling and timestamps. Examples: America/New_York, America/Denver, America/Los_Angeles, Europe/London"
+          Description="Your local timezone for accurate cron scheduling. Examples: America/New_York, America/Denver, Europe/London"
           Type="Variable"
           Display="always"
           Required="false"
@@ -203,7 +194,7 @@
           Target="LOG_LEVEL"
           Default="INFO"
           Mode=""
-          Description="Logging verbosity. DEBUG shows all detail, INFO is normal, WARNING/ERROR for quiet operation."
+          Description="DEBUG, INFO, WARNING, or ERROR"
           Type="Variable"
           Display="advanced"
           Required="false"

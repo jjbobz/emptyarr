@@ -1,14 +1,15 @@
 import logging
 import os
 import threading
-from datetime import datetime, timedelta
+import yaml
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 
-from flask import Flask, jsonify, render_template, request
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from src.config import load_config, AppConfig, PlexInstanceConfig, LibraryConfig
 from src.plex_client import PlexClient
+from src.auth import require_auth, auth_enabled
 from src import runner
 from src.runner import get_scheduling_enabled, set_scheduling_enabled
 
@@ -25,7 +26,6 @@ CONFIG_PATH = os.environ.get("CONFIG_PATH", "data/config.yml")
 config: AppConfig = load_config(CONFIG_PATH)
 logging.getLogger().setLevel(config.log_level.upper())
 
-# One PlexClient per instance
 plex_clients: dict[str, PlexClient] = {
     inst.name: PlexClient(inst.url, inst.token)
     for inst in config.instances
@@ -33,10 +33,10 @@ plex_clients: dict[str, PlexClient] = {
 
 app       = Flask(__name__)
 scheduler = BackgroundScheduler()
-_next_runs: dict = {}   # f"{instance_name}::{library_name}" -> ISO string
+_next_runs: dict = {}
 
 
-# ── Scheduler setup ───────────────────────────────────────────────────────────
+# ── Scheduler ─────────────────────────────────────────────────────────────────
 
 def _job_key(instance_name: str, library_name: str) -> str:
     return f"{instance_name}::{library_name}"
@@ -58,33 +58,33 @@ def _update_next(instance_name: str, library_name: str):
         _next_runs[key] = job.next_run_time.isoformat()
 
 
-for inst in config.instances:
-    for lib in inst.libraries:
-        parts = lib.cron.split()
-        if len(parts) != 5:
-            logger.warning(f"Invalid cron '{lib.cron}' for "
-                           f"{inst.name}/{lib.name} — defaulting to hourly")
-            parts = ["0", "*", "*", "*", "*"]
+def _setup_scheduler():
+    for inst in config.instances:
+        for lib in inst.libraries:
+            parts = lib.cron.split()
+            if len(parts) != 5:
+                parts = ["0", "*", "*", "*", "*"]
+            key = _job_key(inst.name, lib.name)
+            scheduler.add_job(
+                make_job(inst, lib),
+                CronTrigger(
+                    minute=parts[0], hour=parts[1],
+                    day=parts[2], month=parts[3], day_of_week=parts[4],
+                ),
+                id=key,
+                name=f"{inst.name} / {lib.name}",
+                replace_existing=True,
+            )
+    for inst in config.instances:
+        for lib in inst.libraries:
+            _update_next(inst.name, lib.name)
 
-        key = _job_key(inst.name, lib.name)
-        scheduler.add_job(
-            make_job(inst, lib),
-            CronTrigger(
-                minute=parts[0], hour=parts[1],
-                day=parts[2], month=parts[3], day_of_week=parts[4],
-            ),
-            id=key,
-            name=f"{inst.name} / {lib.name}",
-            replace_existing=True,
-        )
 
+_setup_scheduler()
 scheduler.start()
-for inst in config.instances:
-    for lib in inst.libraries:
-        _update_next(inst.name, lib.name)
 
 
-# ── Template context helpers ──────────────────────────────────────────────────
+# ── Template context ──────────────────────────────────────────────────────────
 
 def _build_ui_instances():
     inst_status = runner.get_instance_status()
@@ -112,14 +112,17 @@ def _build_ui_instances():
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route("/")
+@require_auth
 def index():
     return render_template("index.html",
         instances=_build_ui_instances(),
         config_missing=config.config_missing,
+        auth_enabled=auth_enabled(),
     )
 
 
 @app.route("/api/status")
+@require_auth
 def api_status():
     return jsonify({
         "instances":          _build_ui_instances(),
@@ -128,17 +131,19 @@ def api_status():
         "history_count":      len(runner.get_history()),
         "scheduling_enabled": get_scheduling_enabled(),
         "config_missing":     config.config_missing,
+        "auth_enabled":       auth_enabled(),
     })
 
 
 @app.route("/api/history")
+@require_auth
 def api_history():
     return jsonify(runner.get_history())
 
 
 @app.route("/api/checks")
+@require_auth
 def api_checks():
-    """Run Plex reachability checks for all instances. No library action."""
     results = {}
     for inst in config.instances:
         plex = plex_clients[inst.name]
@@ -147,6 +152,7 @@ def api_checks():
 
 
 @app.route("/api/scheduling", methods=["POST"])
+@require_auth
 def api_scheduling():
     data    = request.get_json(silent=True) or {}
     enabled = bool(data.get("enabled", True))
@@ -169,35 +175,36 @@ def _trigger(instance_name: str, library_name: str, dry_run: bool = False):
 
 
 @app.route("/api/run/<instance_name>/<library_name>", methods=["POST"])
+@require_auth
 def api_run_library(instance_name: str, library_name: str):
-    if _trigger(instance_name, library_name, dry_run=False):
-        return jsonify({"status": "triggered",
-                        "instance": instance_name, "library": library_name})
+    if _trigger(instance_name, library_name):
+        return jsonify({"status": "triggered"})
     return jsonify({"error": "not found"}), 404
 
 
 @app.route("/api/dryrun/<instance_name>/<library_name>", methods=["POST"])
+@require_auth
 def api_dryrun_library(instance_name: str, library_name: str):
     if _trigger(instance_name, library_name, dry_run=True):
-        return jsonify({"status": "dry_run_triggered",
-                        "instance": instance_name, "library": library_name})
+        return jsonify({"status": "dry_run_triggered"})
     return jsonify({"error": "not found"}), 404
 
 
 @app.route("/api/run/all", methods=["POST"])
+@require_auth
 def api_run_all():
     def _run():
         for inst in config.instances:
             plex = plex_clients[inst.name]
             plex_checks = runner.run_instance_checks(inst, plex)
             for lib in inst.libraries:
-                runner.run_library(inst, lib, config, plex,
-                                   plex_checks=plex_checks)
+                runner.run_library(inst, lib, config, plex, plex_checks=plex_checks)
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "triggered"})
 
 
 @app.route("/api/dryrun/all", methods=["POST"])
+@require_auth
 def api_dryrun_all():
     def _run():
         for inst in config.instances:
@@ -208,6 +215,112 @@ def api_dryrun_all():
                                    plex_checks=plex_checks, dry_run=True)
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "dry_run_triggered"})
+
+
+# ── Wizard / Config endpoints ─────────────────────────────────────────────────
+
+@app.route("/api/wizard/test-plex", methods=["POST"])
+@require_auth
+def api_test_plex():
+    """Test a Plex connection and return available libraries."""
+    data  = request.get_json(silent=True) or {}
+    url   = data.get("url", "").rstrip("/")
+    token = data.get("token", "")
+    if not url or not token:
+        return jsonify({"ok": False, "error": "URL and token are required"}), 400
+    try:
+        plex = PlexClient(url, token)
+        reachable = plex.check_reachable()
+        if not reachable["pass"]:
+            return jsonify({"ok": False, "error": reachable["detail"]})
+        sections = plex.get_sections()
+        return jsonify({"ok": True, "libraries": sections, "detail": reachable["detail"]})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/api/wizard/browse", methods=["POST"])
+@require_auth
+def api_browse():
+    """Browse filesystem directories for path selection."""
+    data = request.get_json(silent=True) or {}
+    path = data.get("path", "/")
+    try:
+        if not os.path.exists(path):
+            return jsonify({"ok": False, "error": f"Path does not exist: {path}"}), 400
+        entries = []
+        for entry in sorted(os.scandir(path), key=lambda e: e.name):
+            if entry.is_dir(follow_symlinks=False):
+                entries.append({
+                    "name":    entry.name,
+                    "path":    entry.path,
+                    "is_link": entry.is_symlink(),
+                })
+        parent = str(os.path.dirname(path)) if path != "/" else None
+        return jsonify({"ok": True, "path": path, "parent": parent, "entries": entries})
+    except PermissionError:
+        return jsonify({"ok": False, "error": f"Permission denied: {path}"}), 403
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/wizard/save", methods=["POST"])
+@require_auth
+def api_wizard_save():
+    """
+    Receive wizard form data and write config.yml.
+    Expects JSON matching the config structure.
+    """
+    data = request.get_json(silent=True) or {}
+
+    # Build config dict from wizard data
+    cfg = {
+        "discord_webhook": data.get("discord_webhook", ""),
+        "notify": {
+            "on_success": data.get("notify_success", False),
+            "on_failure": data.get("notify_failure", True),
+            "on_skip":    data.get("notify_skip",    True),
+        },
+        "plex_instances": []
+    }
+
+    for inst in data.get("instances", []):
+        instance_cfg = {
+            "name":      inst.get("name", ""),
+            "url":       inst.get("url", ""),
+            "token":     "",   # never write token to config — use env var
+            "libraries": []
+        }
+        for lib in inst.get("libraries", []):
+            lib_cfg = {
+                "name": lib.get("name", ""),
+                "type": lib.get("type", "physical"),
+                "cron": lib.get("cron", "0 * * * *"),
+                "paths": []
+            }
+            for p in lib.get("paths", []):
+                path_cfg = {
+                    "path":         p.get("path", ""),
+                    "type":         p.get("type", "physical"),
+                    "min_files":    int(p.get("min_files", 50)),
+                    "min_threshold": int(p.get("min_threshold", 90)),
+                }
+                if p.get("provider_checks"):
+                    path_cfg["provider_checks"] = [
+                        {"type": pc.get("type", ""), "api_key": ""}
+                        for pc in p["provider_checks"]
+                    ]
+                lib_cfg["paths"].append(path_cfg)
+            instance_cfg["libraries"].append(lib_cfg)
+        cfg["plex_instances"].append(instance_cfg)
+
+    try:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        with open(CONFIG_PATH, "w") as f:
+            yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        return jsonify({"ok": True, "message": "Config saved. Restart the container to apply."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 if __name__ == "__main__":

@@ -7,56 +7,47 @@ services:
       - "8222:8222"
     volumes:
       # ── Config file ─────────────────────────────────────────────────────────
-      # IMPORTANT: Create this file BEFORE starting the container.
-      # If it doesn't exist, Docker will create a directory here instead.
-      #   cp data/config.yml.example data/config.yml
-      #   nano data/config.yml
+      # Create this file BEFORE starting the container.
+      # Use the setup wizard at http://localhost:8222 to generate it,
+      # or copy data/config.yml.example and edit manually.
       - ./data/config.yml:/app/data/config.yml:ro
 
-      # ── Media paths ─────────────────────────────────────────────────────────
-      # Add one entry per path declared in your config.yml.
-      # Container paths here must match exactly what you put in config.yml.
-      # These are examples — adjust to match your actual paths.
-      #
-      # Debrid symlink library paths:
-      # - /mnt/symlink_media/symlinks/movie:/media/symlinks/movie:ro
-      # - /mnt/symlink_media/symlinks/tv:/media/symlinks/tv:ro
-      #
-      # Physical media paths:
-      # - /mnt/user/media/usenet/movies:/media/physical/movies:ro
-      # - /mnt/user/media/usenet/tv:/media/physical/tv:ro
-      #
-      # Debrid mount — required so symlink targets resolve inside the container.
-      # Container path must match the path your symlinks actually point to.
-      # - /mnt/symlink_media/decypharr/mount:/mnt/symlink_media/decypharr/mount:ro
+      # ── Media root mounts ────────────────────────────────────────────────────
+      # Mount the ROOT of each media area — not individual subfolders.
+      # The wizard will let you browse and select the specific paths inside.
+      # Paths used in config.yml must be reachable from inside the container.
+
+      # All symlink media (debrid, usenet symlinks):
+      - /mnt/symlink_media:/mnt/symlink_media:ro
+
+      # Physical media:
+      - /mnt/user/media:/mnt/user/media:ro
 
     environment:
       # ── Plex tokens ──────────────────────────────────────────────────────────
-      # One variable per Plex instance, named after the instance name in
-      # config.yml — uppercased, spaces and hyphens replaced with underscores.
-      #
-      # Examples:
-      #   Instance name "My Plex"         → PLEX_TOKEN_MY_PLEX
-      #   Instance name "Plex-4K"         → PLEX_TOKEN_PLEX_4K
-      #   Instance name "HomeServer"      → PLEX_TOKEN_HOMESERVER
-      #
+      # One variable per Plex instance, named after the instance name:
+      # uppercased, spaces/hyphens → underscores, prefixed with PLEX_TOKEN_
+      # Example: instance "My Plex" → PLEX_TOKEN_MY_PLEX
       # Uncomment and rename to match your instance names:
       # - PLEX_TOKEN_MY_INSTANCE=${PLEX_TOKEN_MY_INSTANCE:-}
-      # - PLEX_TOKEN_MY_OTHER_INSTANCE=${PLEX_TOKEN_MY_OTHER_INSTANCE:-}
 
       # ── Debrid provider API keys (optional) ──────────────────────────────────
-      # Leave blank or omit to skip the provider API health check.
-      # Symlink resolution is always the real gate regardless.
       - RD_API_KEY=${RD_API_KEY:-}
       - AD_API_KEY=${AD_API_KEY:-}
       - TB_API_KEY=${TB_API_KEY:-}
       - DL_API_KEY=${DL_API_KEY:-}
 
+      # ── Web UI auth (optional but recommended) ───────────────────────────────
+      # If set, the web UI will require a username and password.
+      # Leave blank to disable auth (fine for local-only access).
+      - EMPTYARR_USERNAME=${EMPTYARR_USERNAME:-}
+      - EMPTYARR_PASSWORD=${EMPTYARR_PASSWORD:-}
+
       # ── Notifications ─────────────────────────────────────────────────────────
       - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
 
-      # ── Other settings ────────────────────────────────────────────────────────
-      - PUID=99           # user nobody on Unraid — change if needed
-      - PGID=100          # group users on Unraid — change if needed
-      - TZ=America/New_York    # your timezone
+      # ── Other ─────────────────────────────────────────────────────────────────
+      - PUID=99
+      - PGID=100
+      - TZ=America/New_York
       - LOG_LEVEL=INFO
