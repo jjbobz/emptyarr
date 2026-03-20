@@ -180,19 +180,17 @@ def run_instance_checks(instance: PlexInstanceConfig,
 def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
                 config: AppConfig, plex: PlexClient,
                 plex_checks: Optional[Dict] = None,
-                dry_run: bool = False):
+                dry_run: bool = False,
+                manual: bool = False):
     """
-    Full run for one library:
-    1. Plex reachability
-    2. Per-path checks (mount, symlinks, file threshold, provider APIs)
-    3. If all pass: snapshot trash → (unless dry_run) emptyTrash
-    4. Notify
+    Full run for one library.
+    manual=True bypasses the scheduling gate (used for UI button triggers).
     """
     mode = "DRY RUN" if dry_run else "run"
-    logger.info(f"[{instance.name} / {library.name}] Starting {mode}")
+    logger.info(f"[{instance.name} / {library.name}] Starting {mode}{'  (manual)' if manual else ''}")
 
-    # Scheduling gate — cron runs only, not manual/dry
-    if not dry_run and not get_scheduling_enabled():
+    # Scheduling gate — only applies to cron-triggered runs, not manual or dry run
+    if not dry_run and not manual and not get_scheduling_enabled():
         logger.info(f"[{instance.name} / {library.name}] Scheduling paused — skipping")
         _record(instance.name, library.name, "skipped", {},
                 "Scheduling is paused")

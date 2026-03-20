@@ -198,7 +198,7 @@ def _trigger(instance_name: str, library_name: str, dry_run: bool = False):
     def _run():
         plex_checks = runner.run_instance_checks(inst, plex)
         runner.run_library(inst, lib, config, plex,
-                           plex_checks=plex_checks, dry_run=dry_run)
+                           plex_checks=plex_checks, dry_run=dry_run, manual=True)
     threading.Thread(target=_run, daemon=True).start()
     return True
 
@@ -227,7 +227,8 @@ def api_run_all():
             plex = plex_clients[inst.name]
             plex_checks = runner.run_instance_checks(inst, plex)
             for lib in inst.libraries:
-                runner.run_library(inst, lib, config, plex, plex_checks=plex_checks)
+                runner.run_library(inst, lib, config, plex,
+                                   plex_checks=plex_checks, manual=True)
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "triggered"})
 
@@ -241,7 +242,7 @@ def api_dryrun_all():
             plex_checks = runner.run_instance_checks(inst, plex)
             for lib in inst.libraries:
                 runner.run_library(inst, lib, config, plex,
-                                   plex_checks=plex_checks, dry_run=True)
+                                   plex_checks=plex_checks, dry_run=True, manual=True)
     threading.Thread(target=_run, daemon=True).start()
     return jsonify({"status": "dry_run_triggered"})
 
