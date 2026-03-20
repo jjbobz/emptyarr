@@ -37,11 +37,11 @@
   <Config Name="Config File Path"
           Target="/app/data/config.yml"
           Default="/mnt/cache/appdata/emptyarr/config.yml"
-          Mode="ro"
-          Description="Path to your config.yml on the host. Use the setup wizard to create this file. IMPORTANT: the file must exist before starting the container — if it does not exist Docker will create a directory here instead. Create an empty file first: touch /mnt/cache/appdata/emptyarr/config.yml"
+          Mode="rw"
+          Description="Path to your config.yml on the host. Mounted read-write so the setup wizard can save your configuration. The file does not need to exist first — create it with: touch /mnt/cache/appdata/emptyarr/config.yml before starting, or leave the field blank and use the wizard."
           Type="Path"
           Display="always"
-          Required="true"
+          Required="false"
           Mask="false">/mnt/cache/appdata/emptyarr/config.yml</Config>
 
   <!-- ── Media root mounts ──────────────────────────────────────────────── -->

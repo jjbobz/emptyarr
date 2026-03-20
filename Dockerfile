@@ -1,8 +1,7 @@
 FROM python:3.12-slim
 
-# Install runtime dependencies
-# su-exec: lightweight privilege dropping (like gosu but smaller)
-# util-linux: provides the mountpoint binary used by health checks
+# gosu: privilege dropping (Debian equivalent of su-exec)
+# util-linux: provides the mountpoint binary for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     util-linux \
     gosu \
@@ -16,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8222

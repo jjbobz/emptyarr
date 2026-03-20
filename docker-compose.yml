@@ -7,10 +7,9 @@ services:
       - "8222:8222"
     volumes:
       # ── Config file ─────────────────────────────────────────────────────────
-      # Create this file BEFORE starting the container.
-      # Use the setup wizard at http://localhost:8222 to generate it,
-      # or copy data/config.yml.example and edit manually.
-      - ./data/config.yml:/app/data/config.yml:ro
+      # Mounted read-write so the setup wizard can save your configuration.
+      # The file is created automatically by the image if it doesn't exist.
+      - ./data/config.yml:/app/data/config.yml
 
       # ── Media root mounts ────────────────────────────────────────────────────
       # Mount the ROOT of each media area — not individual subfolders.
