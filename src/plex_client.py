@@ -2,6 +2,12 @@ import requests
 from typing import Optional, List, Dict
 
 
+# Plex media type IDs
+_MOVIE_TYPES = [1]           # movie
+_TV_TYPES    = [2, 3, 4]     # show, season, episode
+_MUSIC_TYPES = [8, 9, 10]    # artist, album, track
+
+
 class PlexClient:
     def __init__(self, url: str, token: str):
         self.url   = url.rstrip("/")
@@ -44,6 +50,16 @@ class PlexClient:
             pass
         return None
 
+    def get_section_type(self, section_id: str) -> str:
+        """Return the section type string — 'movie', 'show', etc."""
+        try:
+            for s in self.get_sections():
+                if s["id"] == section_id:
+                    return s["type"]
+        except Exception:
+            pass
+        return "movie"
+
     def get_library_item_count(self, section_id: str) -> int:
         try:
             r = self._get(f"/library/sections/{section_id}/all",
@@ -54,20 +70,84 @@ class PlexClient:
         except Exception:
             return 0
 
-    def get_trash_items(self, section_id: str) -> List[Dict]:
+    def _count_deleted_at(self, section_id: str, media_type: int) -> int:
+        """
+        Count items with a deletedAt timestamp for a given media type.
+        checkFiles=1 causes Plex to include deletedAt for unavailable items.
+        """
         try:
-            r = self._get(f"/library/sections/{section_id}/all",
-                          params={"trash": 1})
+            r = self._get(
+                f"/library/sections/{section_id}/all",
+                params={"checkFiles": 1, "type": media_type,
+                        "X-Plex-Container-Start": 0,
+                        "X-Plex-Container-Size": 0}
+            )
             r.raise_for_status()
-            items = r.json().get("MediaContainer", {}).get("Metadata", [])
-            return [
-                {
-                    "title": item.get("title", "Unknown"),
-                    "year":  item.get("year", ""),
-                    "type":  item.get("type", ""),
-                }
-                for item in items
-            ]
+            # totalSize with checkFiles includes all; we need to count deletedAt
+            # Fetch actual items (cap at 5000 to avoid huge responses)
+            r2 = self._get(
+                f"/library/sections/{section_id}/all",
+                params={"checkFiles": 1, "type": media_type,
+                        "X-Plex-Container-Size": 5000}
+            )
+            r2.raise_for_status()
+            items = r2.json().get("MediaContainer", {}).get("Metadata", [])
+            return sum(1 for item in items if item.get("deletedAt"))
+        except Exception:
+            return 0
+
+    def get_trash_items(self, section_id: str) -> List[Dict]:
+        """
+        Get items that will be removed by emptyTrash.
+        Uses checkFiles=1 + deletedAt detection which works for both
+        traditional trash and unavailable/replaced items.
+        For TV libraries queries show/season/episode levels separately.
+        """
+        try:
+            section_type = self.get_section_type(section_id)
+            if section_type == "show":
+                type_ids = _TV_TYPES
+            elif section_type == "movie":
+                type_ids = _MOVIE_TYPES
+            else:
+                type_ids = _MOVIE_TYPES
+
+            all_items = []
+            for type_id in type_ids:
+                r = self._get(
+                    f"/library/sections/{section_id}/all",
+                    params={"checkFiles": 1, "type": type_id,
+                            "X-Plex-Container-Size": 5000}
+                )
+                if r.status_code != 200:
+                    continue
+                items = r.json().get("MediaContainer", {}).get("Metadata", [])
+                for item in items:
+                    if item.get("deletedAt"):
+                        all_items.append({
+                            "title":      item.get("title", "Unknown"),
+                            "year":       item.get("year", ""),
+                            "type":       item.get("type", ""),
+                            "deleted_at": item.get("deletedAt", 0),
+                        })
+
+            # Also try the legacy trash=1 endpoint and merge
+            r_legacy = self._get(
+                f"/library/sections/{section_id}/all",
+                params={"trash": 1}
+            )
+            if r_legacy.status_code == 200:
+                legacy_items = r_legacy.json().get("MediaContainer", {}).get("Metadata", [])
+                existing_titles = {i["title"] for i in all_items}
+                for item in legacy_items:
+                    if item.get("title") not in existing_titles:
+                        all_items.append({
+                            "title": item.get("title", "Unknown"),
+                            "year":  item.get("year", ""),
+                            "type":  item.get("type", ""),
+                        })
+
+            return all_items
         except Exception:
             return []
 
