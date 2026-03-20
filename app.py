@@ -54,8 +54,11 @@ def make_job(inst: PlexInstanceConfig, lib: LibraryConfig):
 def _update_next(instance_name: str, library_name: str):
     key = _job_key(instance_name, library_name)
     job = scheduler.get_job(key)
-    if job and job.next_run_time:
-        _next_runs[key] = job.next_run_time.isoformat()
+    if job:
+        # APScheduler 3.x uses next_fire_time
+        nft = getattr(job, 'next_fire_time', None) or getattr(job, 'next_run_time', None)
+        if nft:
+            _next_runs[key] = nft.isoformat()
 
 
 def _setup_scheduler():

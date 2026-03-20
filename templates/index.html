@@ -1101,7 +1101,13 @@ async function wizSaveConfig(){
       result.innerHTML=`<div style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);border-radius:6px;padding:14px;color:var(--pass);font-size:12px;line-height:1.7;">
         ✓ Config saved!
         ${envSection}
-        <div style="margin-top:10px;color:var(--muted);">Restart the container to apply the new configuration.</div>
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:5px;color:var(--warn);">
+          ⚠️ You must <strong>restart the container</strong> to apply the new configuration.<br/>
+          <span style="font-size:11px;color:var(--muted);">Unraid → Docker → emptyarr → Restart. This page will reload automatically once the container is back up.</span>
+          <div style="margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="startReloadCountdown(this)">↺ start polling for restart</button>
+          </div>
+        </div>
       </div>`;
       btn.innerHTML='✓ saved';
       toast('Config saved — restart container to apply','pass');
@@ -1120,6 +1126,33 @@ function wizBack(){
 }
 function wizNext(){
   // handled per-step via onclick
+}
+
+// ── Restart polling ──────────────────────────────────────────────────────────
+function startReloadCountdown(btn){
+  btn.disabled=true;
+  btn.textContent='polling for restart…';
+  let attempts=0;
+  const max=30; // try for ~60 seconds
+  const interval=setInterval(async()=>{
+    attempts++;
+    try{
+      const r=await fetch('/api/status',{signal:AbortSignal.timeout(3000)});
+      if(r.ok){
+        clearInterval(interval);
+        toast('✓ Container is back up — reloading…','pass');
+        setTimeout(()=>window.location.reload(),1500);
+      }
+    }catch(e){
+      // container not yet up, keep polling
+    }
+    if(attempts>=max){
+      clearInterval(interval);
+      btn.disabled=false;
+      btn.textContent='↺ retry polling';
+      toast('Container did not come back up in time — check Unraid logs','fail');
+    }
+  },2000);
 }
 
 // ── Polling ──────────────────────────────────────────────────────────────────
