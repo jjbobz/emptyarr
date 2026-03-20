@@ -18,6 +18,7 @@
     Set your Plex tokens and API keys as environment variables below.
   </Overview>
   <Category>MediaApp:Video Tools:</Category>
+  <Icon>https://raw.githubusercontent.com/jjbobzin/emptyarr/main/static/icon.png</Icon>
   <WebUI>http://[IP]:[PORT:8222]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/jjbobzin/emptyarr/main/unraid/emptyarr.xml</TemplateURL>
   <ExtraParams>--restart unless-stopped</ExtraParams>
@@ -33,16 +34,16 @@
           Required="true"
           Mask="false">8222</Config>
 
-  <!-- ── Config file ────────────────────────────────────────────────────── -->
-  <Config Name="Config File Path"
-          Target="/app/data/config.yml"
-          Default="/mnt/cache/appdata/emptyarr/config.yml"
+  <!-- ── Data directory ────────────────────────────────────────────────────── -->
+  <Config Name="Data Directory"
+          Target="/app/data"
+          Default="/mnt/cache/appdata/emptyarr/data"
           Mode="rw"
-          Description="Path to your config.yml on the host. Mounted read-write so the setup wizard can save your configuration. The file does not need to exist first — create it with: touch /mnt/cache/appdata/emptyarr/config.yml before starting, or leave the field blank and use the wizard."
+          Description="Persistent data directory. Stores config.yml and state.json. Create this directory before starting: mkdir -p /mnt/cache/appdata/emptyarr/data"
           Type="Path"
           Display="always"
-          Required="false"
-          Mask="false">/mnt/cache/appdata/emptyarr/config.yml</Config>
+          Required="true"
+          Mask="false">/mnt/cache/appdata/emptyarr/data</Config>
 
   <!-- ── Media root mounts ──────────────────────────────────────────────── -->
   <Config Name="Symlink Media Root"
