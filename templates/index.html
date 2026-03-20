@@ -1839,55 +1839,6 @@ function setProviderType(ii, li, pi, type) {
   if (pcs && pcs.length > 0) pcs[0].type = type;
 }
 
-async function loadProviderStatus(force = false) {
-  const body = document.getElementById('provider-status-body');
-  if (!body) return;
-  if (!force && body.dataset.loaded) return;
-  body.dataset.loaded = '1';
-  body.innerHTML = '<div style="color:var(--muted);font-size:12px;"><span class="spin"></span> checking…</div>';
-  try {
-    const r = await fetch('/api/providers/status');
-    const d = await r.json();
-    const providers = {
-      realdebrid: 'Real-Debrid',
-      alldebrid:  'AllDebrid',
-      torbox:     'Torbox',
-      debridlink: 'Debrid-Link',
-    };
-    const rows = Object.entries(providers).map(([key, label]) => {
-      const s = d[key] || { ok: false, error: 'No API key set' };
-      if (!s.ok && s.error === 'No API key set') {
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:12px;font-weight:600;color:var(--text);min-width:100px;">${label}</span>
-          <span style="font-size:11px;color:var(--muted);">No API key configured</span>
-        </div>`;
-      }
-      if (!s.ok) {
-        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:12px;font-weight:600;color:var(--text);min-width:100px;">${label}</span>
-          <span class="badge error">${s.error}</span>
-        </div>`;
-      }
-      // Build expiry display
-      let expiryHtml = '';
-      if (s.days_left !== null && s.days_left !== undefined) {
-        const cls = s.days_left <= 7 ? 'fail2' : s.days_left <= 30 ? 'warn2' : 'pass';
-        expiryHtml = `<span style="font-family:var(--mono);font-size:11px;color:var(--${cls});">
-          ${s.days_left}d remaining</span>
-          <span style="font-size:10px;color:var(--muted);">(expires ${s.expiration})</span>`;
-      }
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:var(--bright);min-width:100px;">${label}</span>
-        <span class="badge success">✓ connected</span>
-        <span style="font-size:11px;color:var(--text2);">${s.username || ''}</span>
-        ${expiryHtml}
-      </div>`;
-    }).join('');
-    body.innerHTML = `<div style="font-size:11px;">${rows}</div>`;
-  } catch(e) {
-    body.innerHTML = '<div style="color:var(--fail2);font-size:12px;">Failed to load provider status</div>';
-  }
-}
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const moon = document.getElementById('theme-icon-moon');
