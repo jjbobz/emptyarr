@@ -73,30 +73,32 @@ class PlexClient:
     def _fetch_deleted(self, section_id: str, type_id: int) -> List[Dict]:
         """
         Fetch all items with deletedAt set for a given type.
-        IMPORTANT: Token must be passed as query param (not header) for
-        checkFiles=1 to include deletedAt on episode-level items in Plex.
+        MUST use XML (not JSON) — Plex omits deletedAt from most items
+        in JSON responses but includes it correctly in XML.
+        Token must also be a query param not a header for this to work.
         """
         try:
-            # Use requests directly (not self.session) so token goes as query param
+            import xml.etree.ElementTree as ET
             r = requests.get(
                 f"{self.url}/library/sections/{section_id}/all",
                 params={
-                    "checkFiles":    1,
-                    "type":          type_id,
-                    "X-Plex-Token":  self.token,
+                    "checkFiles":   1,
+                    "type":         type_id,
+                    "X-Plex-Token": self.token,
                 },
-                headers={"Accept": "application/json"},
+                # No Accept: application/json — get XML
                 timeout=120,
             )
             if r.status_code != 200:
                 return []
-            items = r.json().get("MediaContainer", {}).get("Metadata", [])
+            root  = ET.fromstring(r.text)
+            items = root.findall("Video") + root.findall("Directory")
             return [
                 {
                     "title":      item.get("title", "Unknown"),
                     "year":       item.get("year", ""),
                     "type":       item.get("type", ""),
-                    "deleted_at": item.get("deletedAt", 0),
+                    "deleted_at": int(item.get("deletedAt", 0)),
                 }
                 for item in items if item.get("deletedAt")
             ]

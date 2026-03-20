@@ -417,8 +417,9 @@ def api_config_load():
 @app.route("/api/debug/trash/<instance_name>/<section_id>")
 @require_auth
 def api_debug_trash(instance_name: str, section_id: str):
-    """Debug endpoint — shows raw trash item counts per type level."""
+    """Debug endpoint — shows raw trash item counts per type level using XML."""
     import requests as _requests
+    import xml.etree.ElementTree as ET
     inst = next((i for i in config.instances if i.name == instance_name), None)
     if not inst:
         return jsonify({"error": "instance not found"}), 404
@@ -426,14 +427,13 @@ def api_debug_trash(instance_name: str, section_id: str):
     result = {}
     for type_id in [2, 3, 4]:
         try:
-            # Test with token as query param (curl-style)
             r = _requests.get(
                 f"{plex.url}/library/sections/{section_id}/all",
                 params={"checkFiles": 1, "type": type_id, "X-Plex-Token": plex.token},
-                headers={"Accept": "application/json"},
                 timeout=120,
             )
-            items   = r.json().get("MediaContainer", {}).get("Metadata", [])
+            root    = ET.fromstring(r.text)
+            items   = root.findall("Video") + root.findall("Directory")
             deleted = [i for i in items if i.get("deletedAt")]
             result[f"type_{type_id}"] = {
                 "total_returned": len(items),
