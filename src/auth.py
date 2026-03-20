@@ -1,11 +1,11 @@
 import os
-import base64
+import hashlib
+import secrets
 from functools import wraps
-from flask import request, Response
+from flask import request, session, redirect, url_for, jsonify
 
 
 def _get_credentials():
-    """Get configured credentials from environment. Returns (username, password) or (None, None) if auth disabled."""
     username = os.environ.get("EMPTYARR_USERNAME", "")
     password = os.environ.get("EMPTYARR_PASSWORD", "")
     if username and password:
@@ -14,33 +14,34 @@ def _get_credentials():
 
 
 def auth_enabled() -> bool:
+    u, _ = _get_credentials()
+    return bool(u)
+
+
+def check_credentials(username: str, password: str) -> bool:
     u, p = _get_credentials()
-    return u is not None
+    if not u:
+        return True
+    # Use constant-time comparison to prevent timing attacks
+    return secrets.compare_digest(username, u) and secrets.compare_digest(password, p)
 
 
-def check_auth(username: str, password: str) -> bool:
-    u, p = _get_credentials()
-    if u is None:
-        return True  # auth disabled
-    return username == u and password == p
-
-
-def unauthorized():
-    return Response(
-        "Unauthorized — please provide valid credentials.",
-        401,
-        {"WWW-Authenticate": 'Basic realm="emptyarr"'}
-    )
+def is_authenticated() -> bool:
+    if not auth_enabled():
+        return True
+    return session.get("authenticated") is True
 
 
 def require_auth(f):
-    """Decorator that enforces basic auth if credentials are configured."""
+    """Redirect to login page for HTML requests, 401 for API requests."""
     @wraps(f)
     def decorated(*args, **kwargs):
         if not auth_enabled():
             return f(*args, **kwargs)
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return unauthorized()
+        if not is_authenticated():
+            # API requests get 401, page requests get redirect
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Unauthorized"}), 401
+            return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated

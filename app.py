@@ -1,15 +1,16 @@
 import logging
 import os
+import secrets
 import threading
 import yaml
-from flask import Flask, jsonify, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for, session
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from src.config import load_config, AppConfig, PlexInstanceConfig, LibraryConfig
 from src.plex_client import PlexClient
-from src.auth import require_auth, auth_enabled
+from src.auth import require_auth, auth_enabled, check_credentials, is_authenticated
 from src import runner
 from src.runner import get_scheduling_enabled, set_scheduling_enabled
 
@@ -31,8 +32,9 @@ plex_clients: dict[str, PlexClient] = {
     for inst in config.instances
 }
 
-app       = Flask(__name__)
-scheduler = BackgroundScheduler()
+app            = Flask(__name__)
+app.secret_key = os.environ.get("EMPTYARR_SECRET_KEY", secrets.token_hex(32))
+scheduler      = BackgroundScheduler()
 _next_runs: dict = {}
 
 
@@ -113,6 +115,29 @@ def _build_ui_instances():
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not auth_enabled():
+        return redirect(url_for("index"))
+    if is_authenticated():
+        return redirect(url_for("index"))
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        if check_credentials(username, password):
+            session["authenticated"] = True
+            return redirect(url_for("index"))
+        error = "Invalid username or password"
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
 
 @app.route("/")
 @require_auth
@@ -362,6 +387,19 @@ def api_wizard_save():
             "env_vars_needed": env_vars_needed,
             "message":         "Config saved. Restart the container to apply.",
         })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/config/load")
+@require_auth
+def api_config_load():
+    """Return current config.yml contents for the settings editor."""
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            import yaml as _yaml
+            raw = _yaml.safe_load(f) or {}
+        return jsonify({"ok": True, "config": raw})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
