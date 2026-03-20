@@ -56,5 +56,7 @@ services:
       - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
 
       # ── Other settings ────────────────────────────────────────────────────────
+      - PUID=99           # user nobody on Unraid — change if needed
+      - PGID=100          # group users on Unraid — change if needed
       - TZ=America/New_York    # your timezone
       - LOG_LEVEL=INFO

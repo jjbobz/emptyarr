@@ -169,6 +169,26 @@
           Mask="false"></Config>
 
   <!-- ── General settings ───────────────────────────────────────────────── -->
+  <Config Name="PUID"
+          Target="PUID"
+          Default="99"
+          Mode=""
+          Description="User ID the container runs as. On Unraid this should be 99 (nobody). Change only if you have specific permission requirements."
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="false">99</Config>
+
+  <Config Name="PGID"
+          Target="PGID"
+          Default="100"
+          Mode=""
+          Description="Group ID the container runs as. On Unraid this should be 100 (users). Change only if you have specific permission requirements."
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="false">100</Config>
+
   <Config Name="Timezone"
           Target="TZ"
           Default="America/New_York"

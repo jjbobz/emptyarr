@@ -47,6 +47,8 @@ These **override** any matching values in config.yml.
 
 | Variable | Description |
 |----------|-------------|
+| `PUID` | User ID to run as — `99` (nobody) on Unraid |
+| `PGID` | Group ID to run as — `100` (users) on Unraid |
 | `PLEX_TOKEN_{NAME}` | Token per instance — e.g. `PLEX_TOKEN_MY_PLEX` |
 | `PLEX_URL_{NAME}` | URL per instance (optional override) |
 | `RD_API_KEY` | Real-Debrid API key |

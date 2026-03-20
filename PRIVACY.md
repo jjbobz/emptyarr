@@ -1,0 +1,1 @@
+Emptyarr makes network requests only to services you explicitly configure: your Plex server, debrid provider APIs (if you add an API key), and your Discord webhook (if you add one). It collects no analytics, sends no telemetry, and phones home to nothing.
