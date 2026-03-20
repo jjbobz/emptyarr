@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>emptyarr</Name>
+  <Repository>ghcr.io/jjbobzin/emptyarr:latest</Repository>
+  <Registry>https://github.com/jjbobzin/emptyarr/pkgs/container/emptyarr</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/jjbobzin/emptyarr/issues</Support>
+  <Project>https://github.com/jjbobzin/emptyarr</Project>
+  <Overview>
+    Safely empties Plex library trash by validating mount health before acting.
+    Supports multiple Plex instances, mixed physical/debrid libraries,
+    per-library cron schedules, dry runs, and Discord notifications.
+
+    Requires a config.yml — copy config.yml.example from the repo, fill in
+    your Plex instances and library paths, then map it to /app/data/config.yml.
+    Set your Plex tokens and API keys as environment variables below.
+  </Overview>
+  <Category>MediaApp:Video Tools:</Category>
+  <WebUI>http://[IP]:[PORT:7878]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/jjbobzin/emptyarr/main/unraid/emptyarr.xml</TemplateURL>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+
+  <!-- ── Web UI port ─────────────────────────────────────────────────────── -->
+  <Config Name="Web UI Port"
+          Target="7878"
+          Default="7878"
+          Mode="tcp"
+          Description="Port for the emptyarr web interface."
+          Type="Port"
+          Display="always"
+          Required="true"
+          Mask="false">7878</Config>
+
+  <!-- ── Config file ────────────────────────────────────────────────────── -->
+  <Config Name="Config File Path"
+          Target="/app/data/config.yml"
+          Default="/mnt/cache/appdata/emptyarr/config.yml"
+          Mode="ro"
+          Description="Full path to your config.yml file on the host. IMPORTANT: this file must exist before starting the container — if it does not exist Docker will create a directory here instead. Copy config.yml.example from the repo and fill it in first."
+          Type="Path"
+          Display="always"
+          Required="true"
+          Mask="false">/mnt/cache/appdata/emptyarr/config.yml</Config>
+
+  <!-- ── Media paths ────────────────────────────────────────────────────── -->
+  <Config Name="Debrid Symlink Path 1 (optional)"
+          Target="/media/symlinks/movie"
+          Default=""
+          Mode="ro"
+          Description="Host path to your debrid symlink movie library. Must match the container path declared in config.yml. Leave blank if not using debrid symlinks for movies."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <Config Name="Debrid Symlink Path 2 (optional)"
+          Target="/media/symlinks/tv"
+          Default=""
+          Mode="ro"
+          Description="Host path to your debrid symlink TV library. Must match the container path declared in config.yml. Leave blank if not using debrid symlinks for TV."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <Config Name="Physical Media Path 1 (optional)"
+          Target="/media/physical/movies"
+          Default=""
+          Mode="ro"
+          Description="Host path to your physical movie files. Must match the container path declared in config.yml."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <Config Name="Physical Media Path 2 (optional)"
+          Target="/media/physical/tv"
+          Default=""
+          Mode="ro"
+          Description="Host path to your physical TV files. Must match the container path declared in config.yml."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <Config Name="Debrid Mount Path (optional)"
+          Target="/mnt/debrid/mount"
+          Default=""
+          Mode="ro"
+          Description="Your rclone/debrid mount path. Required if using debrid libraries — symlink targets must resolve inside the container. The container path must exactly match what your symlinks reference. Example: if symlinks point to /mnt/symlink_media/decypharr/mount/... then map that host path to the same container path."
+          Type="Path"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <!-- ── Plex tokens ────────────────────────────────────────────────────── -->
+  <Config Name="Plex Token (Instance 1)"
+          Target="PLEX_TOKEN_INSTANCE_1"
+          Default=""
+          Mode=""
+          Description="Plex token for your first Plex instance. The variable name must match your instance name in config.yml — uppercased with spaces/hyphens replaced by underscores. Example: instance named 'My Plex' uses PLEX_TOKEN_MY_PLEX. Find your token at: https://support.plex.tv/articles/204059436"
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="true"></Config>
+
+  <Config Name="Plex Token (Instance 2)"
+          Target="PLEX_TOKEN_INSTANCE_2"
+          Default=""
+          Mode=""
+          Description="Plex token for your second Plex instance (if you have one). Rename this variable to match your second instance name in config.yml."
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="true"></Config>
+
+  <!-- ── Debrid provider API keys ───────────────────────────────────────── -->
+  <Config Name="Real-Debrid API Key (optional)"
+          Target="RD_API_KEY"
+          Default=""
+          Mode=""
+          Description="Real-Debrid API key for provider health checks. Optional — leave blank to skip. Get yours at: https://real-debrid.com/apitoken"
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="true"></Config>
+
+  <Config Name="AllDebrid API Key (optional)"
+          Target="AD_API_KEY"
+          Default=""
+          Mode=""
+          Description="AllDebrid API key for provider health checks. Optional — leave blank to skip."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="true"></Config>
+
+  <Config Name="Torbox API Key (optional)"
+          Target="TB_API_KEY"
+          Default=""
+          Mode=""
+          Description="Torbox API key for provider health checks. Optional — leave blank to skip."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="true"></Config>
+
+  <Config Name="Debrid-Link API Key (optional)"
+          Target="DL_API_KEY"
+          Default=""
+          Mode=""
+          Description="Debrid-Link API key for provider health checks. Optional — leave blank to skip."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="true"></Config>
+
+  <!-- ── Notifications ──────────────────────────────────────────────────── -->
+  <Config Name="Discord Webhook URL (optional)"
+          Target="DISCORD_WEBHOOK"
+          Default=""
+          Mode=""
+          Description="Discord webhook URL for failure/skip/success notifications. Optional — leave blank to disable. Create a webhook in your Discord server settings."
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="false"></Config>
+
+  <!-- ── General settings ───────────────────────────────────────────────── -->
+  <Config Name="Timezone"
+          Target="TZ"
+          Default="America/New_York"
+          Mode=""
+          Description="Your local timezone for accurate cron scheduling and timestamps. Examples: America/New_York, America/Denver, America/Los_Angeles, Europe/London"
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="false">America/New_York</Config>
+
+  <Config Name="Log Level"
+          Target="LOG_LEVEL"
+          Default="INFO"
+          Mode=""
+          Description="Logging verbosity. DEBUG shows all detail, INFO is normal, WARNING/ERROR for quiet operation."
+          Type="Variable"
+          Display="advanced"
+          Required="false"
+          Mask="false">INFO</Config>
+
+</Container>

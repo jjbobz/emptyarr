@@ -6,28 +6,55 @@ services:
     ports:
       - "7878:7878"
     volumes:
-      # Config — copy config.yml.example to config.yml and fill in your values
+      # ── Config file ─────────────────────────────────────────────────────────
+      # IMPORTANT: Create this file BEFORE starting the container.
+      # If it doesn't exist, Docker will create a directory here instead.
+      #   cp data/config.yml.example data/config.yml
+      #   nano data/config.yml
       - ./data/config.yml:/app/data/config.yml:ro
 
-      # Symlink library paths (must match paths declared in config.yml)
-      - /mnt/symlink_media/symlinks/movie:/media/symlinks/movie:ro
-      - /mnt/symlink_media/symlinks/tv:/media/symlinks/tv:ro
-
-      # Physical media paths
-      - /mnt/user/media/usenet/movies:/media/physical/movies:ro
-      - /mnt/user/media/usenet/tv:/media/physical/tv:ro
-
-      # Decypharr mount — required so symlink targets inside /media/symlinks/* resolve
-      # Your symlinks point into here — must be visible at the same path inside the container
-      - /mnt/symlink_media/decypharr/mount:/mnt/symlink_media/decypharr/mount:ro
+      # ── Media paths ─────────────────────────────────────────────────────────
+      # Add one entry per path declared in your config.yml.
+      # Container paths here must match exactly what you put in config.yml.
+      # These are examples — adjust to match your actual paths.
+      #
+      # Debrid symlink library paths:
+      # - /mnt/symlink_media/symlinks/movie:/media/symlinks/movie:ro
+      # - /mnt/symlink_media/symlinks/tv:/media/symlinks/tv:ro
+      #
+      # Physical media paths:
+      # - /mnt/user/media/usenet/movies:/media/physical/movies:ro
+      # - /mnt/user/media/usenet/tv:/media/physical/tv:ro
+      #
+      # Debrid mount — required so symlink targets resolve inside the container.
+      # Container path must match the path your symlinks actually point to.
+      # - /mnt/symlink_media/decypharr/mount:/mnt/symlink_media/decypharr/mount:ro
 
     environment:
-      # These override config.yml values if set
-      # Per-instance tokens: PLEX_TOKEN_STREAMSTEAD, PLEX_TOKEN_STREAMSTEAD_UNLIMITED
-      - PLEX_TOKEN_STREAMSTEAD=${PLEX_TOKEN_STREAMSTEAD:-}
-      - PLEX_TOKEN_STREAMSTEAD_UNLIMITED=${PLEX_TOKEN_STREAMSTEAD_UNLIMITED:-}
+      # ── Plex tokens ──────────────────────────────────────────────────────────
+      # One variable per Plex instance, named after the instance name in
+      # config.yml — uppercased, spaces and hyphens replaced with underscores.
+      #
+      # Examples:
+      #   Instance name "My Plex"         → PLEX_TOKEN_MY_PLEX
+      #   Instance name "Plex-4K"         → PLEX_TOKEN_PLEX_4K
+      #   Instance name "HomeServer"      → PLEX_TOKEN_HOMESERVER
+      #
+      # Uncomment and rename to match your instance names:
+      # - PLEX_TOKEN_MY_INSTANCE=${PLEX_TOKEN_MY_INSTANCE:-}
+      # - PLEX_TOKEN_MY_OTHER_INSTANCE=${PLEX_TOKEN_MY_OTHER_INSTANCE:-}
+
+      # ── Debrid provider API keys (optional) ──────────────────────────────────
+      # Leave blank or omit to skip the provider API health check.
+      # Symlink resolution is always the real gate regardless.
       - RD_API_KEY=${RD_API_KEY:-}
       - AD_API_KEY=${AD_API_KEY:-}
       - TB_API_KEY=${TB_API_KEY:-}
+      - DL_API_KEY=${DL_API_KEY:-}
+
+      # ── Notifications ─────────────────────────────────────────────────────────
       - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
-      - TZ=America/Denver
+
+      # ── Other settings ────────────────────────────────────────────────────────
+      - TZ=America/New_York    # your timezone
+      - LOG_LEVEL=INFO

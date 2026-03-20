@@ -113,7 +113,10 @@ def _build_ui_instances():
 
 @app.route("/")
 def index():
-    return render_template("index.html", instances=_build_ui_instances())
+    return render_template("index.html",
+        instances=_build_ui_instances(),
+        config_missing=config.config_missing,
+    )
 
 
 @app.route("/api/status")
@@ -124,6 +127,7 @@ def api_status():
         "global_checks":      runner.get_last_global_checks(),
         "history_count":      len(runner.get_history()),
         "scheduling_enabled": get_scheduling_enabled(),
+        "config_missing":     config.config_missing,
     })
 
 

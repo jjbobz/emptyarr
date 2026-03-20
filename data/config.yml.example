@@ -1,30 +1,36 @@
 # emptyarr config
-# Copy this to config.yml and fill in your values.
-# Values here are overridden by environment variables — see docker-compose.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+# Copy this file to config.yml and fill in your values.
+# IMPORTANT: config.yml must exist before starting the container.
+#
+# Secrets (tokens, API keys) are best set as environment variables so they
+# don't live in this file. See .env.example or the Unraid Docker UI.
+# Environment variables always override values set here.
+# ─────────────────────────────────────────────────────────────────────────────
 
-discord_webhook: "https://discord.com/api/webhooks/YOUR/WEBHOOK"
+discord_webhook: ""   # or set DISCORD_WEBHOOK env var
 
 notify:
-  on_success: false   # Send Discord message when trash is successfully emptied
-  on_failure: true    # Send when health checks fail and trash empty is skipped
-  on_skip:    true    # Send when something prevents the run (section not found etc.)
+  on_success: false   # notify when trash is successfully emptied
+  on_failure: true    # notify when health checks fail and empty is skipped
+  on_skip:    true    # notify when something prevents the run (config error etc)
 
 plex_instances:
 
-  # ── Streamstead — physical media only ──────────────────────────────────────
-  - name: "Streamstead"
-    url:   "http://10.10.10.5:32400"
-    token: "YOUR_PLEX_TOKEN_STREAMSTEAD"
+  # ── Example: physical-only Plex instance ────────────────────────────────────
+  - name: "My Plex"                    # used to name env vars: PLEX_TOKEN_MY_PLEX
+    url:   "http://192.168.1.100:32400"
+    token: ""                          # leave blank — set PLEX_TOKEN_MY_PLEX env var
 
     libraries:
-      - name: Movies
+      - name: Movies                   # must match Plex library name exactly
         type: physical
-        cron: "0 * * * *"         # every hour
+        cron: "0 * * * *"             # every hour
         paths:
           - path: /media/physical/movies
             type: physical
-            min_files: 200         # abort if fewer than 200 files found on disk
-            min_threshold: 95      # abort if disk files < 95% of Plex library count
+            min_files: 200            # abort if fewer than this many files on disk
+            min_threshold: 95         # abort if disk files < 95% of Plex count
 
       - name: TV Shows
         type: physical
@@ -35,15 +41,15 @@ plex_instances:
             min_files: 500
             min_threshold: 95
 
-  # ── Streamstead-Unlimited — mixed physical + debrid ─────────────────────────
-  - name: "Streamstead-Unlimited"
-    url:   "http://10.10.10.5:32410"
-    token: "YOUR_PLEX_TOKEN_STREAMSTEAD_UNLIMITED"
+  # ── Example: mixed physical + debrid Plex instance ──────────────────────────
+  - name: "My Plex Unlimited"          # PLEX_TOKEN_MY_PLEX_UNLIMITED
+    url:   "http://192.168.1.100:32410"
+    token: ""
 
     libraries:
       - name: Movies
         type: mixed
-        cron: "*/30 * * * *"      # every 30 minutes
+        cron: "*/30 * * * *"          # every 30 minutes
         paths:
           - path: /media/symlinks/movie
             type: debrid
@@ -51,7 +57,7 @@ plex_instances:
             min_threshold: 90
             provider_checks:
               - type: realdebrid
-                api_key: ""       # leave blank to use RD_API_KEY env var
+                api_key: ""           # leave blank to use RD_API_KEY env var
 
           - path: /media/physical/movies
             type: physical
@@ -68,25 +74,25 @@ plex_instances:
             min_threshold: 90
             provider_checks:
               - type: realdebrid
-                api_key: ""       # leave blank to use RD_API_KEY env var
+                api_key: ""
 
           - path: /media/physical/tv
             type: physical
             min_files: 200
             min_threshold: 95
 
-# ── Notes ───────────────────────────────────────────────────────────────────
+# ── Reference ─────────────────────────────────────────────────────────────────
 #
 # Library types:
-#   physical — real files on disk, no symlink check, no provider API check
-#   debrid   — symlinks pointing to a debrid/rclone mount, full symlink check
-#   usenet   — symlinks pointing to a usenet mount (future support)
-#   mixed    — per-path type declarations (physical + debrid in same Plex library)
+#   physical  real files on disk — mountpoint + file threshold checks only
+#   debrid    symlinks to rclone/debrid mount — adds symlink resolution check
+#   usenet    symlinks to usenet mount — same checks as debrid (future)
+#   mixed     per-path type declarations for libraries with both physical + debrid
 #
-# provider_checks (optional, per path):
-#   type: realdebrid | alldebrid | torbox | debridlink
-#   api_key: leave blank to pick up from env vars RD_API_KEY / AD_API_KEY / TB_API_KEY / DL_API_KEY
-#   Omit provider_checks entirely to skip the API check (symlink resolution is the real gate)
+# provider_checks (optional, per debrid/usenet path):
+#   Supported types: realdebrid | alldebrid | torbox | debridlink
+#   api_key: leave blank to pick up from env var (RD_API_KEY / AD_API_KEY etc)
+#   Omit entirely to skip the provider API check — symlink resolution is the real gate
 #
 # Multiple providers on one path:
 #   provider_checks:
@@ -95,14 +101,18 @@ plex_instances:
 #     - type: alldebrid
 #       api_key: ""
 #
-# Cron reference:
-#   "*/30 * * * *"  every 30 min
-#   "0 * * * *"     every hour
-#   "0 */2 * * *"   every 2 hours
-#   "0 2 * * *"     daily at 2am
+# Plex token env var naming:
+#   Instance name → uppercased, spaces/hyphens → underscores → prefix PLEX_TOKEN_
+#   "My Plex"              → PLEX_TOKEN_MY_PLEX
+#   "Plex-4K"              → PLEX_TOKEN_PLEX_4K
+#   "HomeServer"           → PLEX_TOKEN_HOMESERVER
 #
-# min_files / min_threshold guidance:
-#   min_files    — absolute floor. If mount dies, disk count drops to ~0.
-#                  Set to ~10% of your library size as a safe floor.
-#   min_threshold — ratio check. 90 means disk files must be >= 90% of Plex count.
-#                  Catches partial mount issues without false-positives from normal fluctuation.
+# Cron reference:
+#   "*/30 * * * *"   every 30 min
+#   "0 * * * *"      every hour
+#   "0 */2 * * *"    every 2 hours
+#   "0 2 * * *"      daily at 2am
+#
+# min_files / min_threshold:
+#   min_files     absolute floor — set to ~10% of your library file count
+#   min_threshold ratio check — 90 = disk files must be >= 90% of Plex count
