@@ -72,43 +72,31 @@ class PlexClient:
 
     def _fetch_deleted(self, section_id: str, type_id: int) -> List[Dict]:
         """
-        Fetch all items with deletedAt set for a given type, using pagination
-        to handle large libraries (e.g. 13k+ episodes).
+        Fetch all items with deletedAt set for a given type.
+        Uses a single unlimited request — Plex only includes deletedAt in
+        full responses, not paginated ones (confirmed behavior).
+        Uses a long timeout to handle large libraries (e.g. 13k+ episodes).
         """
-        PAGE_SIZE = 500
-        start     = 0
-        deleted   = []
-        while True:
-            try:
-                r = self._get(
-                    f"/library/sections/{section_id}/all",
-                    params={
-                        "checkFiles":              1,
-                        "type":                    type_id,
-                        "X-Plex-Container-Start":  start,
-                        "X-Plex-Container-Size":   PAGE_SIZE,
-                    },
-                    timeout=30,
-                )
-                if r.status_code != 200:
-                    break
-                mc    = r.json().get("MediaContainer", {})
-                items = mc.get("Metadata", [])
-                for item in items:
-                    if item.get("deletedAt"):
-                        deleted.append({
-                            "title":      item.get("title", "Unknown"),
-                            "year":       item.get("year", ""),
-                            "type":       item.get("type", ""),
-                            "deleted_at": item.get("deletedAt", 0),
-                        })
-                total = int(mc.get("totalSize", 0))
-                start += len(items)
-                if start >= total or not items:
-                    break
-            except Exception:
-                break
-        return deleted
+        try:
+            r = self._get(
+                f"/library/sections/{section_id}/all",
+                params={"checkFiles": 1, "type": type_id},
+                timeout=120,
+            )
+            if r.status_code != 200:
+                return []
+            items = r.json().get("MediaContainer", {}).get("Metadata", [])
+            return [
+                {
+                    "title":      item.get("title", "Unknown"),
+                    "year":       item.get("year", ""),
+                    "type":       item.get("type", ""),
+                    "deleted_at": item.get("deletedAt", 0),
+                }
+                for item in items if item.get("deletedAt")
+            ]
+        except Exception:
+            return []
 
     def get_trash_items(self, section_id: str) -> List[Dict]:
         """
