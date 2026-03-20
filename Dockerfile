@@ -1,11 +1,10 @@
 FROM python:3.12-slim
 
-# Install runtime dependencies
-# su-exec: lightweight privilege dropping (like gosu but smaller)
 # util-linux: provides the mountpoint binary used by health checks
+# gosu: lightweight privilege dropping (Debian equivalent of su-exec)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     util-linux \
-    su-exec \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

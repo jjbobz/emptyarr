@@ -30,4 +30,4 @@ fi
 chown -R "${PUID}:${PGID}" /app
 
 # Drop privileges and run the app
-exec su-exec "${PUID}:${PGID}" "$@"
+exec gosu "${PUID}:${PGID}" "$@"
