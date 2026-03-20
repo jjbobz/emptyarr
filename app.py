@@ -433,12 +433,19 @@ def api_debug_trash(instance_name: str, section_id: str):
                 timeout=120,
             )
             root    = ET.fromstring(r.text)
-            items   = root.findall("Video") + root.findall("Directory")
-            deleted = [i for i in items if i.get("deletedAt")]
+            deleted = []
+            for item in list(root):
+                if item.get("deletedAt"):
+                    deleted.append(item.get("title", "?"))
+                else:
+                    for media in item.findall("Media"):
+                        if media.get("deletedAt"):
+                            deleted.append(item.get("title", "?"))
+                            break
             result[f"type_{type_id}"] = {
-                "total_returned": len(items),
+                "total_returned": len(list(root)),
                 "deleted_count":  len(deleted),
-                "titles":         [i.get("title") for i in deleted[:10]],
+                "titles":         deleted[:10],
             }
         except Exception as e:
             result[f"type_{type_id}"] = {"error": str(e)}

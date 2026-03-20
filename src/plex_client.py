@@ -73,9 +73,9 @@ class PlexClient:
     def _fetch_deleted(self, section_id: str, type_id: int) -> List[Dict]:
         """
         Fetch all items with deletedAt set for a given type.
-        MUST use XML (not JSON) — Plex omits deletedAt from most items
-        in JSON responses but includes it correctly in XML.
-        Token must also be a query param not a header for this to work.
+        For shows/episodes, deletedAt lives on the <Media> child element,
+        not on the <Video> parent. Must use XML (not JSON) and token as
+        query param — Plex omits deletedAt from JSON responses for episodes.
         """
         try:
             import xml.etree.ElementTree as ET
@@ -86,22 +86,35 @@ class PlexClient:
                     "type":         type_id,
                     "X-Plex-Token": self.token,
                 },
-                # No Accept: application/json — get XML
                 timeout=120,
             )
             if r.status_code != 200:
                 return []
-            root  = ET.fromstring(r.text)
-            items = root.findall("Video") + root.findall("Directory")
-            return [
-                {
-                    "title":      item.get("title", "Unknown"),
-                    "year":       item.get("year", ""),
-                    "type":       item.get("type", ""),
-                    "deleted_at": int(item.get("deletedAt", 0)),
-                }
-                for item in items if item.get("deletedAt")
-            ]
+            root    = ET.fromstring(r.text)
+            deleted = []
+            for item in list(root):
+                tag = item.tag  # Video, Directory, Track, etc.
+                # Check deletedAt on the item itself (shows, seasons)
+                if item.get("deletedAt"):
+                    deleted.append({
+                        "title":      item.get("title", "Unknown"),
+                        "year":       item.get("year", ""),
+                        "type":       item.get("type", tag.lower()),
+                        "deleted_at": int(item.get("deletedAt", 0)),
+                    })
+                else:
+                    # Check deletedAt on Media children (episodes with
+                    # unavailable/replaced files)
+                    for media in item.findall("Media"):
+                        if media.get("deletedAt"):
+                            deleted.append({
+                                "title":      item.get("title", "Unknown"),
+                                "year":       item.get("year", ""),
+                                "type":       item.get("type", tag.lower()),
+                                "deleted_at": int(media.get("deletedAt", 0)),
+                            })
+                            break  # one entry per episode
+            return deleted
         except Exception:
             return []
 
