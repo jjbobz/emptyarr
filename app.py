@@ -417,15 +417,43 @@ def api_config_load():
 @require_auth
 def api_providers_status():
     """Return account status for all configured providers."""
-    from src.providers import get_account_status, _ENV_KEYS
+    from src.providers import get_account_status, _ENV_KEYS, get_api_key
     result = {}
-    for provider, env_var in _ENV_KEYS.items():
-        key = os.environ.get(env_var, "")
+    for provider in _ENV_KEYS:
+        key = get_api_key(provider, config=config)
         if key:
             result[provider] = get_account_status(provider, key)
         else:
-            result[provider] = {"ok": False, "error": "No API key set"}
+            result[provider] = {"ok": False, "error": "no_key"}
     return jsonify(result)
+
+
+@app.route("/api/providers/save", methods=["POST"])
+@require_auth
+def api_providers_save():
+    """Save provider API keys to config.yml providers block."""
+    global config
+    data = request.get_json(silent=True) or {}
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            raw = yaml.safe_load(f) or {}
+        providers = raw.get("providers", {})
+        for provider, key in data.items():
+            key = key.strip()
+            if key:
+                providers[provider] = {"api_key": key}
+            else:
+                providers.pop(provider, None)
+        if providers:
+            raw["providers"] = providers
+        else:
+            raw.pop("providers", None)
+        with open(CONFIG_PATH, "w") as f:
+            yaml.dump(raw, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        config = load_config(CONFIG_PATH)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/api/auth/save", methods=["POST"])

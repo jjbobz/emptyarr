@@ -671,35 +671,54 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
       <!-- Providers -->
       <div class="settings-section" id="ss-providers">
         <div class="settings-section-title">Debrid Providers</div>
-        <div class="settings-section-desc">Provider API keys are set as environment variables in your Docker UI. emptyarr reads them automatically — they are never written to config.yml.</div>
+        <div class="settings-section-desc">Enter your API keys here — saved to config.yml. Alternatively set env vars in Docker UI (they take priority). Keys are only used for optional provider health checks.</div>
 
         <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <span class="card-title">API Keys</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span id="providers-save-result" style="font-size:11px;"></span>
+              <button class="btn btn-primary btn-sm" onclick="saveProviders()">💾 Save</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Real-Debrid
+                  <a href="https://real-debrid.com/apitoken" target="_blank" style="color:var(--info2);font-size:10px;margin-left:6px;font-weight:400;">get key ↗</a>
+                </label>
+                <input class="form-input" type="password" id="pkey-realdebrid" placeholder="env: RD_API_KEY" autocomplete="off" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">AllDebrid
+                  <a href="https://alldebrid.com/apikeys" target="_blank" style="color:var(--info2);font-size:10px;margin-left:6px;font-weight:400;">get key ↗</a>
+                </label>
+                <input class="form-input" type="password" id="pkey-alldebrid" placeholder="env: AD_API_KEY" autocomplete="off" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Torbox
+                  <a href="https://torbox.app/settings" target="_blank" style="color:var(--info2);font-size:10px;margin-left:6px;font-weight:400;">get key ↗</a>
+                </label>
+                <input class="form-input" type="password" id="pkey-torbox" placeholder="env: TB_API_KEY" autocomplete="off" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Debrid-Link
+                  <a href="https://debrid-link.com/webapp/apikey" target="_blank" style="color:var(--info2);font-size:10px;margin-left:6px;font-weight:400;">get key ↗</a>
+                </label>
+                <input class="form-input" type="password" id="pkey-debridlink" placeholder="env: DL_API_KEY" autocomplete="off" />
+              </div>
+            </div>
+            <div class="form-hint" style="margin-top:10px;">Leave blank to clear a saved key. Env vars always take priority over saved keys.</div>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-header">
             <span class="card-title">Account Status</span>
             <button class="btn btn-secondary btn-sm" onclick="loadProviderStatus(true)">↺ refresh</button>
           </div>
           <div class="card-body" id="provider-status-body">
-            <div style="color:var(--muted);font-size:12px;">Loading…</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Environment Variables</span></div>
-          <div class="card-body">
-            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7;">
-              Set these in your Unraid Docker UI. The variable name determines which provider is checked.
-            </div>
-            ${['RD_API_KEY|Real-Debrid|https://real-debrid.com/apitoken',
-               'AD_API_KEY|AllDebrid|https://alldebrid.com/apikeys',
-               'TB_API_KEY|Torbox|https://torbox.app/settings',
-               'DL_API_KEY|Debrid-Link|https://debrid-link.com/webapp/apikey'].map(s => {
-              const [v,n,u] = s.split('|');
-              return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;">
-                <code style="font-family:var(--mono);font-size:11px;color:var(--accent2);min-width:110px;">${v}</code>
-                <span style="font-size:12px;color:var(--text);flex:1;">${n}</span>
-                <a href="${u}" target="_blank" style="font-size:11px;color:var(--info2);">get key ↗</a>
-              </div>`;
-            }).join('')}
+            <div style="color:var(--muted);font-size:12px;">Save keys above then click refresh, or open this section to auto-check.</div>
           </div>
         </div>
       </div>
@@ -1049,6 +1068,12 @@ async function loadSettings() {
     // Pre-populate username if set
     const authUser = document.getElementById('s-auth-user');
     if (authUser && cfg.auth && cfg.auth.username) authUser.value = cfg.auth.username;
+    // Show placeholder dots for saved provider keys
+    const provCfg = cfg.providers || {};
+    ['realdebrid','alldebrid','torbox','debridlink'].forEach(p => {
+      const el = document.getElementById(`pkey-${p}`);
+      if (el && provCfg[p]?.api_key) el.placeholder = '••••••••  (saved — enter new key to replace)';
+    });
   } catch(e) { toast('Error loading settings', 'fail'); }
 }
 
@@ -1726,7 +1751,79 @@ async function fetchHistory() {
   try { const r = await fetch('/api/history'); _history = await r.json(); renderHistory(_history); } catch(e) {}
 }
 
-function toggleProviderCheck(ii, li, pi, enabled) {
+async function saveProviders() {
+  const keys = {
+    realdebrid: document.getElementById('pkey-realdebrid')?.value || '',
+    alldebrid:  document.getElementById('pkey-alldebrid')?.value  || '',
+    torbox:     document.getElementById('pkey-torbox')?.value     || '',
+    debridlink: document.getElementById('pkey-debridlink')?.value || '',
+  };
+  const result = document.getElementById('providers-save-result');
+  try {
+    const r = await fetch('/api/providers/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(keys)
+    });
+    const d = await r.json();
+    if (d.ok) {
+      if (result) result.innerHTML = '<span style="color:var(--pass);">✓ Saved</span>';
+      toast('Provider keys saved', 'pass');
+      // Clear inputs and reload status
+      ['realdebrid','alldebrid','torbox','debridlink'].forEach(p => {
+        const el = document.getElementById(`pkey-${p}`);
+        if (el) el.value = '';
+      });
+      loadProviderStatus(true);
+    } else {
+      if (result) result.innerHTML = `<span style="color:var(--fail2);">✗ ${d.error}</span>`;
+    }
+  } catch(e) {
+    if (result) result.innerHTML = '<span style="color:var(--fail2);">Save failed</span>';
+  }
+}
+
+async function loadProviderStatus(force = false) {
+  const body = document.getElementById('provider-status-body');
+  if (!body) return;
+  if (!force && body.dataset.loaded) return;
+  body.dataset.loaded = '1';
+  body.innerHTML = '<div style="color:var(--muted);font-size:12px;"><span class="spin"></span> checking…</div>';
+  try {
+    const r = await fetch('/api/providers/status');
+    const d = await r.json();
+    const labels = { realdebrid:'Real-Debrid', alldebrid:'AllDebrid', torbox:'Torbox', debridlink:'Debrid-Link' };
+    const configured = Object.entries(d).filter(([,s]) => s.error !== 'no_key');
+    if (!configured.length) {
+      body.innerHTML = '<div style="color:var(--muted);font-size:12px;">No provider keys configured. Add keys above and save.</div>';
+      return;
+    }
+    const rows = configured.map(([key, s]) => {
+      const label = labels[key] || key;
+      if (!s.ok) {
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:12px;font-weight:600;color:var(--bright);min-width:110px;">${label}</span>
+          <span class="badge error">✗ ${s.error}</span>
+        </div>`;
+      }
+      let expiryHtml = '';
+      if (s.days_left !== null && s.days_left !== undefined) {
+        const cls = s.days_left <= 7 ? 'fail2' : s.days_left <= 30 ? 'warn2' : 'pass';
+        expiryHtml = `<span style="font-family:var(--mono);font-size:12px;color:var(--${cls});font-weight:600;">${s.days_left}d left</span>
+          <span style="font-size:10px;color:var(--muted);">expires ${s.expiration}</span>`;
+      }
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:600;color:var(--bright);min-width:110px;">${label}</span>
+        <span class="badge success">✓ connected</span>
+        <span style="font-size:11px;color:var(--text2);">${s.username || ''}</span>
+        ${expiryHtml}
+      </div>`;
+    }).join('');
+    body.innerHTML = `<div>${rows}</div>`;
+  } catch(e) {
+    body.innerHTML = '<div style="color:var(--fail2);font-size:12px;">Failed to load provider status</div>';
+  }
+}
   if (enabled) {
     _settingsData.instances[ii].libraries[li].paths[pi].provider_checks = [{ type: 'realdebrid', api_key: '' }];
   } else {

@@ -64,10 +64,22 @@ def _days_left(expiration_str: str) -> int | None:
         return None
 
 
-def get_api_key(provider_type: str, configured_key: str = "") -> str:
-    """Resolve API key — env var takes priority over configured key."""
+def get_api_key(provider_type: str, configured_key: str = "", config=None) -> str:
+    """
+    Resolve API key — priority order:
+    1. Env var (EMPTYARR_RD_API_KEY etc)
+    2. config.providers block (set via UI)
+    3. configured_key (from path-level provider_checks)
+    """
     env_var = _ENV_KEYS.get(provider_type.lower(), "")
-    return os.environ.get(env_var, configured_key or "")
+    env_key = os.environ.get(env_var, "")
+    if env_key:
+        return env_key
+    if config and hasattr(config, 'providers'):
+        cfg_key = config.providers.get(provider_type.lower(), {}).get("api_key", "")
+        if cfg_key:
+            return cfg_key
+    return configured_key or ""
 
 
 def check_provider(provider_type: str, api_key: str) -> Dict:

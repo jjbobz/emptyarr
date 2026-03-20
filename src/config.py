@@ -66,6 +66,7 @@ class AppConfig:
     config_missing: bool = False    # True when no config.yml — UI shows setup prompt
     auth_username: str = ""
     auth_password_hash: str = ""    # SHA-256 hash, set via Settings UI
+    providers: dict = field(default_factory=dict)  # {realdebrid: {api_key: ...}, ...}
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -203,6 +204,8 @@ def load_config(path: str = "data/config.yml") -> AppConfig:
     auth_username      = auth_raw.get("username", "")
     auth_password_hash = auth_raw.get("password_hash", "")
 
+    providers_raw = raw.get("providers", {})
+
     instances = [_load_instance(inst) for inst in raw.get("plex_instances", [])]
 
     if not instances:
@@ -216,4 +219,5 @@ def load_config(path: str = "data/config.yml") -> AppConfig:
         config_missing      = False,
         auth_username       = auth_username,
         auth_password_hash  = auth_password_hash,
+        providers           = providers_raw,
     )
