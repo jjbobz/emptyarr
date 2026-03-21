@@ -1,7 +1,10 @@
 import logging
+import logging.handlers
 import os
 import secrets
 import threading
+import requests as _requests
+import xml.etree.ElementTree as ET
 import yaml
 from flask import Flask, jsonify, render_template, request, redirect, url_for, session
 
@@ -13,9 +16,8 @@ from src.plex_client import PlexClient
 from src.auth import require_auth, auth_enabled, check_credentials, is_authenticated, hash_password, is_locked_out
 from src import runner
 from src.runner import get_scheduling_enabled, set_scheduling_enabled
-
-# ── Logging ───────────────────────────────────────────────────────────────────
-import logging.handlers
+from src.providers import get_account_status, get_api_key
+from src.providers import _ENV_KEYS as _PROVIDER_ENV_KEYS
 
 LOG_DIR  = os.environ.get("LOG_DIR", "data/logs")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -456,52 +458,12 @@ def api_config_load():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route("/api/debug/trash/<instance_name>/<section_id>")
-@require_auth
-def api_debug_trash(instance_name: str, section_id: str):
-    """Debug endpoint — shows raw trash item counts per type level using XML."""
-    import requests as _requests
-    import xml.etree.ElementTree as ET
-    inst = next((i for i in config.instances if i.name == instance_name), None)
-    if not inst:
-        return jsonify({"error": "instance not found"}), 404
-    plex   = plex_clients[inst.name]
-    result = {}
-    for type_id in [2, 3, 4]:
-        try:
-            r = _requests.get(
-                f"{plex.url}/library/sections/{section_id}/all",
-                params={"checkFiles": 1, "type": type_id, "X-Plex-Token": plex.token},
-                timeout=120,
-            )
-            root    = ET.fromstring(r.text)
-            deleted = []
-            for item in list(root):
-                if item.get("deletedAt"):
-                    deleted.append(item.get("title", "?"))
-                else:
-                    for media in item.findall("Media"):
-                        if media.get("deletedAt"):
-                            deleted.append(item.get("title", "?"))
-                            break
-            result[f"type_{type_id}"] = {
-                "total_returned": len(list(root)),
-                "deleted_count":  len(deleted),
-                "titles":         deleted[:10],
-            }
-        except Exception as e:
-            result[f"type_{type_id}"] = {"error": str(e)}
-    return jsonify(result)
-    return jsonify(result)
-
-
 @app.route("/api/providers/status")
 @require_auth
 def api_providers_status():
     """Return account status for all configured providers."""
-    from src.providers import get_account_status, _ENV_KEYS, get_api_key
     result = {}
-    for provider in _ENV_KEYS:
+    for provider in _PROVIDER_ENV_KEYS:
         key = get_api_key(provider, config=config)
         if key:
             result[provider] = get_account_status(provider, key)

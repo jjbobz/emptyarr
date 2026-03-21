@@ -20,4 +20,4 @@ RUN chmod +x /app/entrypoint.sh
 EXPOSE 8222
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8222", "--workers", "1", "--threads", "4", "--timeout", "120", "app:app"]

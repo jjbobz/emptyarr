@@ -1,45 +1,39 @@
 # emptyarr
 
-**Plex trash watchdog** — validates mount health before emptying library trash.
+Plex doesn't automatically clean up its library trash when you're using symlinked debrid or usenet media. When a file gets replaced or removed, Plex marks it unavailable — but unless you have "empty trash automatically after every scan" turned on (which you probably don't, because that's risky), those entries just pile up.
 
-emptyarr runs on a cron schedule, checks that your media paths are healthy, then safely empties Plex library trash. It supports multiple Plex instances, physical and debrid libraries, per-library schedules, Discord notifications, and a web UI.
-
-![emptyarr dashboard](https://raw.githubusercontent.com/jjbobzin/emptyarr/main/static/icon-192.png)
+emptyarr runs on a schedule, checks that your mounts are actually healthy, and then calls Plex's emptyTrash API. If anything looks wrong — mount missing, symlinks broken, file count dropped — it skips the empty and optionally pings you on Discord.
 
 ---
 
-## Features
+## How it works
 
-- **Health checks before every empty** — mountpoint validation, symlink resolution, file count ratio
-- **Multiple Plex instances** — manage Streamstead, Streamstead-Unlimited, or any number of servers
-- **Library types** — `physical`, `debrid`, `usenet`, `mixed` (combined threshold check)
-- **Per-library cron schedules** — each library runs on its own schedule
-- **Dry run mode** — see what would be removed without taking action
-- **Discord notifications** — on success, failure, or skip
-- **Web UI** — dashboard, run history with expandable check details, settings editor
-- **Optional auth** — set username/password via the Settings UI
-- **Light/dark theme** — toggle in the nav bar
+Before emptying trash on any library, emptyarr runs:
+
+1. **Mount check** — walks up the path tree to find the nearest mount point and verifies it's accessible
+2. **Symlink check** — for debrid/usenet paths, samples a random set of symlinks and verifies they resolve to real files
+3. **File threshold** — compares the count of files on disk to your Plex library count. If the ratio drops below your configured threshold (default 90%), something's wrong and it bails
+4. **Combined check** — for mixed libraries (physical + debrid), sums all paths and checks the combined ratio
+
+All checks pass → trash gets emptied. Any check fails → skip, log it, notify if configured.
 
 ---
 
-## Quick Start (Unraid)
+## Setup (Unraid)
 
-### 1. Build the image
+### Build
 
 ```bash
+mkdir -p /mnt/cache/appdata/emptyarr/data
 cd /mnt/cache/appdata/emptyarr
 git clone https://github.com/jjbobzin/emptyarr.git .
 docker build -t emptyarr:latest .
 ```
 
-### 2. Add the container in Unraid Docker UI
+### Container settings
 
-| Field | Value |
-|---|---|
-| Name | `emptyarr` |
-| Repository | `emptyarr:latest` |
-| Network | `arr_net` (or your arr network) |
-| Port | `8222` → `8222` |
+**Network:** your arr network (e.g. `arr_net`)  
+**Port:** `8222`
 
 **Path mappings:**
 
@@ -49,7 +43,7 @@ docker build -t emptyarr:latest .
 | `/mnt/symlink_media` | `/symlink_media` | Read Only |
 | `/mnt/user/media` | `/mnt/user/media` | Read Only |
 
-> **Note on symlink paths:** The container path for symlink media must match what your symlinks actually point to. Check with `ls -la /mnt/symlink_media/symlinks/radarr/ | head -3` — if the targets start with `/symlink_media/` (no `/mnt`), use `/symlink_media` as the container path.
+> The container path for symlink media needs to match what your symlinks actually point to. Check with `ls -la /mnt/symlink_media/symlinks/radarr/ | head -3` and look at the symlink targets. If they start with `/symlink_media/` (no `/mnt`), use that as the container path.
 
 **Environment variables:**
 
@@ -57,34 +51,53 @@ docker build -t emptyarr:latest .
 |---|---|
 | `PUID` | `99` (Unraid nobody) |
 | `PGID` | `100` (Unraid users) |
-| `TZ` | e.g. `America/Denver` |
-| `PLEX_TOKEN_<NAME>` | Plex token per instance (optional — can set via UI instead) |
+| `TZ` | Your timezone, e.g. `America/Denver` |
+| `PLEX_TOKEN_<NAME>` | Optional — set per instance, or paste in the UI instead |
 
-Tokens are named by instance: `PLEX_TOKEN_STREAMSTEAD`, `PLEX_TOKEN_STREAMSTEAD_UNLIMITED`, etc. (uppercase, spaces/hyphens replaced with underscores).
+Token env var names match your instance name uppercased with spaces/hyphens as underscores: `PLEX_TOKEN_STREAMSTEAD`, `PLEX_TOKEN_STREAMSTEAD_UNLIMITED`, etc.
 
-### 3. Open the UI and run the setup wizard
+### First run
 
-Navigate to `http://YOUR_UNRAID_IP:8222` and click **Open Setup Wizard**.
+Open `http://YOUR_IP:8222` and run through the setup wizard. Takes a few minutes.
 
 ---
 
 ## Configuration
 
-Config is stored at `/app/data/config.yml` (mapped to your host's data directory). You can edit it via the **Settings** page in the UI, or directly in the file.
+Config lives at `/app/data/config.yml` (your host's data directory). The Settings page in the UI can edit everything — you shouldn't need to touch the file directly.
 
-### Example config.yml
+### Library types
+
+- **physical** — standard files on disk
+- **debrid** — symlinked content (Real-Debrid, AllDebrid, etc.)
+- **usenet** — usenet downloads with symlinks
+- **mixed** — combination of physical and debrid in the same Plex library
+
+For mixed libraries the file threshold check combines all paths before comparing to your Plex count, so individual paths don't need to hold the full library.
+
+### Threshold
+
+`min_threshold` is the percentage of your Plex library count that must exist on disk. Default is 90. If you have 1000 movies in Plex and only 850 files on disk, that's 85% — below 90%, so the empty gets skipped.
+
+### Cron schedules
+
+Per-library. Standard cron syntax. `0 * * * *` runs every hour on the hour, `*/30 * * * *` every 30 minutes.
+
+### Example config
 
 ```yaml
 discord_webhook: https://discord.com/api/webhooks/...
 notify:
-  on_success: true
-  on_failure: true
-  on_skip: true
+  on_emptied: true
+  on_health_fail: true
+  on_error: true
+  on_clean: false
+  on_skip: false
 
 plex_instances:
   - name: Streamstead
-    url: http://10.10.10.5:32400
-    token: ''   # use PLEX_TOKEN_STREAMSTEAD env var
+    url: http://192.168.1.100:32400
+    token: ''
     libraries:
       - name: Movies
         type: physical
@@ -93,7 +106,6 @@ plex_instances:
           - path: /mnt/user/media/usenet/movies
             type: physical
             min_threshold: 90
-
       - name: TV Shows
         type: physical
         cron: "0 * * * *"
@@ -103,7 +115,7 @@ plex_instances:
             min_threshold: 90
 
   - name: Streamstead-Unlimited
-    url: http://10.10.10.5:32410
+    url: http://192.168.1.100:32410
     token: ''
     libraries:
       - name: Movies
@@ -116,7 +128,6 @@ plex_instances:
           - path: /symlink_media/symlinks/radarr
             type: debrid
             min_threshold: 90
-
       - name: TV Shows
         type: debrid
         cron: "0 * * * *"
@@ -126,41 +137,25 @@ plex_instances:
             min_threshold: 90
 ```
 
-### Library types
+---
 
-| Type | Description | Checks run |
-|---|---|---|
-| `physical` | Standard files on disk | Mount, Files ratio |
-| `debrid` | Symlinked debrid content | Mount, Symlinks, Files ratio |
-| `usenet` | Usenet downloads | Mount, Symlinks, Files ratio |
-| `mixed` | Mix of physical + debrid | Mount + Symlinks per path, combined Files ratio |
+## Auth
 
-### Thresholds
+Settings → Security. Enter username and password, save. Takes effect immediately, no restart needed. Stored as a SHA-256 hash in config.yml — never plaintext.
 
-`min_threshold` is the minimum percentage of your Plex library count that must exist on disk before emptyarr will empty trash. Default is `90` (90%).
-
-For `mixed` libraries, emptyarr combines the file count across **all paths** and compares the total to the Plex count — so each individual path doesn't need to hold the full library.
+You can also set `EMPTYARR_USERNAME` and `EMPTYARR_PASSWORD` env vars instead (these take priority).
 
 ---
 
-## Health Checks
+## Notifications
 
-Before emptying trash, emptyarr runs these checks for each configured path:
+Five separate Discord notification events you can toggle independently:
 
-1. **Mount** — walks up the directory tree to find the nearest mount point. Fails if the path doesn't exist.
-2. **Symlinks** — for debrid/usenet paths, samples symlinks and verifies they resolve to real files. Catches dead debrid mounts.
-3. **Files (ratio)** — counts files on disk and compares to Plex library count. Fails if ratio drops below `min_threshold`.
-4. **Files (combined)** — for `mixed` libraries, checks the sum of all paths vs Plex count.
-
-If any check fails, trash is **not** emptied and a notification is sent (if configured).
-
----
-
-## Authentication
-
-Go to **Settings → Security** to set a username and password. Auth takes effect immediately — no container restart needed. Passwords are stored as SHA-256 hashes in `config.yml`.
-
-You can also set `EMPTYARR_USERNAME` and `EMPTYARR_PASSWORD` env vars instead (env vars take priority).
+- **Trash emptied** — something was actually removed
+- **Health check failed** — checks didn't pass, empty was skipped
+- **Error** — the emptyTrash API call failed
+- **Already clean** — ran fine, nothing to remove (off by default — gets noisy)
+- **Skipped** — scheduling paused, config error, section not found (off by default)
 
 ---
 
@@ -170,14 +165,14 @@ You can also set `EMPTYARR_USERNAME` and `EMPTYARR_PASSWORD` env vars instead (e
 cd /mnt/cache/appdata/emptyarr
 git pull
 docker build -t emptyarr:latest .
-# Restart container in Unraid UI
+# restart in Unraid UI
 ```
 
 ---
 
 ## Privacy
 
-emptyarr makes network requests **only** to services you configure: your Plex server, debrid provider APIs (if you set an API key), and your Discord webhook. No telemetry. No analytics. No phone-home. See [PRIVACY.md](PRIVACY.md).
+emptyarr only talks to: your Plex server, debrid provider APIs if you configure an API key, and your Discord webhook. That's it. No telemetry, no analytics, no external calls. See [PRIVACY.md](PRIVACY.md).
 
 ---
 
