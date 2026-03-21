@@ -10,15 +10,37 @@ from apscheduler.triggers.cron import CronTrigger
 
 from src.config import load_config, AppConfig, PlexInstanceConfig, LibraryConfig
 from src.plex_client import PlexClient
-from src.auth import require_auth, auth_enabled, check_credentials, is_authenticated, hash_password
+from src.auth import require_auth, auth_enabled, check_credentials, is_authenticated, hash_password, is_locked_out
 from src import runner
 from src.runner import get_scheduling_enabled, set_scheduling_enabled
 
 # ── Logging ───────────────────────────────────────────────────────────────────
+import logging.handlers
+
+LOG_DIR  = os.environ.get("LOG_DIR", "data/logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+_log_formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# Console handler
+_console = logging.StreamHandler()
+_console.setFormatter(_log_formatter)
+
+# Rotating file handler — 1MB per file, keep 5 files
+_file_handler = logging.handlers.RotatingFileHandler(
+    os.path.join(LOG_DIR, "emptyarr.log"),
+    maxBytes=1 * 1024 * 1024,  # 1MB
+    backupCount=5,
+    encoding="utf-8",
+)
+_file_handler.setFormatter(_log_formatter)
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[_console, _file_handler],
 )
 logger = logging.getLogger("emptyarr")
 
@@ -126,10 +148,14 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "")
         password = request.form.get("password", "")
-        if check_credentials(username, password, config):
+        ip       = request.remote_addr or ""
+        if is_locked_out(ip):
+            error = "Too many failed attempts — try again in 10 minutes"
+        elif check_credentials(username, password, config, ip=ip):
             session["authenticated"] = True
             return redirect(url_for("index"))
-        error = "Invalid username or password"
+        else:
+            error = "Invalid username or password"
     return render_template("login.html", error=error)
 
 
@@ -512,6 +538,21 @@ def api_providers_save():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/auth/token")
+@require_auth
+def api_auth_token():
+    """Return the API token (password hash) for use in X-API-Token header."""
+    from src.auth import _get_credentials
+    _, ph = _get_credentials(config)
+    if not ph:
+        return jsonify({"ok": False, "error": "Auth not configured"})
+    return jsonify({
+        "ok":    True,
+        "token": ph,
+        "usage": "Add header: X-API-Token: <token> to API requests",
+    })
+
+
 @app.route("/api/auth/save", methods=["POST"])
 @require_auth
 def api_auth_save():
@@ -551,4 +592,4 @@ def api_auth_save():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8222, debug=False)
+    app.run(host="0.0.0.0", port=8222, debug=False, use_reloader=False)
