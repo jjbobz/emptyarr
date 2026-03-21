@@ -50,9 +50,17 @@ class PlexInstanceConfig:
 
 @dataclass
 class NotifyConfig:
-    on_success: bool = False
-    on_failure: bool = True
-    on_skip: bool = True
+    on_emptied:       bool = True   # trash was emptied (items removed)
+    on_clean:         bool = False  # ran successfully, trash already empty
+    on_health_fail:   bool = True   # mount/symlink/threshold checks failed
+    on_error:         bool = True   # emptyTrash API call failed
+    on_skip:          bool = False  # scheduling paused, config error, section not found
+
+    # Legacy aliases for backward compat with old config files
+    @property
+    def on_success(self): return self.on_emptied
+    @property
+    def on_failure(self): return self.on_health_fail
 
 
 # ── Top-level app config ──────────────────────────────────────────────────────
@@ -195,9 +203,11 @@ def load_config(path: str = "data/config.yml") -> AppConfig:
 
     notify_raw = raw.get("notify", {})
     notify = NotifyConfig(
-        on_success = notify_raw.get("on_success", False),
-        on_failure = notify_raw.get("on_failure", True),
-        on_skip    = notify_raw.get("on_skip",    True),
+        on_emptied     = notify_raw.get("on_emptied",     notify_raw.get("on_success", True)),
+        on_clean       = notify_raw.get("on_clean",       False),
+        on_health_fail = notify_raw.get("on_health_fail", notify_raw.get("on_failure", True)),
+        on_error       = notify_raw.get("on_error",       True),
+        on_skip        = notify_raw.get("on_skip",        False),
     )
 
     auth_raw = raw.get("auth", {})

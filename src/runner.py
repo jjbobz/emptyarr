@@ -235,10 +235,10 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
         msg = f"Checks failed ({failed_names}) — trash empty skipped"
         logger.warning(f"[{instance.name} / {library.name}] {msg}")
         _record(instance.name, library.name, "skipped", all_checks, msg)
-        if config.notify.on_failure and config.discord_webhook:
-            notifications.notify_failure(config.discord_webhook,
-                                         instance.name, library.name,
-                                         failed, all_checks)
+        if config.notify.on_health_fail and config.discord_webhook:
+            notifications.notify_health_fail(config.discord_webhook,
+                                             instance.name, library.name,
+                                             failed, all_checks)
         return
 
     # Snapshot trash — try to get item list for display
@@ -285,6 +285,11 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
         msg = f"emptyTrash failed: {result.get('error', result.get('http'))}"
         logger.error(f"[{instance.name} / {library.name}] {msg}")
         _record(instance.name, library.name, "error", all_checks, msg, trash_items)
+        if config.notify.on_error and config.discord_webhook:
+            notifications.notify_error(config.discord_webhook,
+                                       instance.name, library.name,
+                                       str(result.get('error', result.get('http'))),
+                                       all_checks)
         return
 
     if trash_count > 0:
@@ -298,11 +303,11 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
             trash_items if trash_items else [],
             removed_count=headline_count if trash_count > 0 else 0)
 
-    if config.notify.on_success and config.discord_webhook and trash_count > 0:
-        notifications.notify_success(config.discord_webhook,
+    if trash_count > 0 and config.notify.on_emptied and config.discord_webhook:
+        notifications.notify_emptied(config.discord_webhook,
                                      instance.name, library.name,
-                                     trash_items, all_checks)
-    elif config.notify.on_success and config.discord_webhook and trash_count == 0:
-        notifications.notify_success(config.discord_webhook,
-                                     instance.name, library.name,
-                                     [], all_checks)
+                                     trash_items, all_checks,
+                                     breakdown=_breakdown(trash_items))
+    elif trash_count == 0 and config.notify.on_clean and config.discord_webhook:
+        notifications.notify_clean(config.discord_webhook,
+                                   instance.name, library.name, all_checks)

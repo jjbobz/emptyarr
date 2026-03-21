@@ -735,24 +735,38 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
           <div class="form-label" style="margin-bottom:10px;">Notify when:</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="s-notify-success" style="accent-color:var(--accent);width:15px;height:15px;" />
+              <input type="checkbox" id="s-notify-emptied" style="accent-color:var(--accent);width:15px;height:15px;" />
               <div>
-                <div style="font-size:13px;color:var(--bright);font-weight:500;">Success</div>
-                <div style="font-size:11px;color:var(--muted);">Trash was emptied successfully</div>
+                <div style="font-size:13px;color:var(--bright);font-weight:500;">Trash emptied</div>
+                <div style="font-size:11px;color:var(--muted);">Items were actually removed from library trash</div>
               </div>
             </label>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-              <input type="checkbox" id="s-notify-failure" style="accent-color:var(--accent);width:15px;height:15px;" />
+              <input type="checkbox" id="s-notify-health-fail" style="accent-color:var(--accent);width:15px;height:15px;" />
               <div>
-                <div style="font-size:13px;color:var(--bright);font-weight:500;">Failure</div>
-                <div style="font-size:11px;color:var(--muted);">Health checks failed, trash empty was skipped</div>
+                <div style="font-size:13px;color:var(--bright);font-weight:500;">Health check failed</div>
+                <div style="font-size:11px;color:var(--muted);">Mount, symlink, or threshold checks failed — empty was skipped</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="s-notify-error" style="accent-color:var(--accent);width:15px;height:15px;" />
+              <div>
+                <div style="font-size:13px;color:var(--bright);font-weight:500;">Error</div>
+                <div style="font-size:11px;color:var(--muted);">emptyTrash API call failed</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="s-notify-clean" style="accent-color:var(--accent);width:15px;height:15px;" />
+              <div>
+                <div style="font-size:13px;color:var(--bright);font-weight:500;">Already clean</div>
+                <div style="font-size:11px;color:var(--muted);">Run succeeded but trash was already empty — usually noisy</div>
               </div>
             </label>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
               <input type="checkbox" id="s-notify-skip" style="accent-color:var(--accent);width:15px;height:15px;" />
               <div>
-                <div style="font-size:13px;color:var(--bright);font-weight:500;">Skip</div>
-                <div style="font-size:11px;color:var(--muted);">Something prevented the run (config error, section not found)</div>
+                <div style="font-size:13px;color:var(--bright);font-weight:500;">Skipped</div>
+                <div style="font-size:11px;color:var(--muted);">Scheduling paused, config error, or section not found</div>
               </div>
             </label>
           </div>
@@ -1031,7 +1045,7 @@ function toggleExpand(rid, row) {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-let _settingsData = { instances: [], discord_webhook: '', notify_success: false, notify_failure: true, notify_skip: true };
+let _settingsData = { instances: [], discord_webhook: '', notify_emptied: true, notify_health_fail: true, notify_error: true, notify_clean: false, notify_skip: false };
 
 async function loadSettings() {
   try {
@@ -1039,10 +1053,12 @@ async function loadSettings() {
     const d = await r.json();
     if (!d.ok) { toast('Could not load config', 'fail'); return; }
     const cfg = d.config || {};
-    _settingsData.discord_webhook = cfg.discord_webhook || '';
-    _settingsData.notify_success  = cfg.notify?.on_success ?? false;
-    _settingsData.notify_failure  = cfg.notify?.on_failure ?? true;
-    _settingsData.notify_skip     = cfg.notify?.on_skip    ?? true;
+    _settingsData.discord_webhook    = cfg.discord_webhook || '';
+    _settingsData.notify_emptied     = cfg.notify?.on_emptied     ?? cfg.notify?.on_success ?? true;
+    _settingsData.notify_health_fail = cfg.notify?.on_health_fail ?? cfg.notify?.on_failure ?? true;
+    _settingsData.notify_error       = cfg.notify?.on_error       ?? true;
+    _settingsData.notify_clean       = cfg.notify?.on_clean       ?? false;
+    _settingsData.notify_skip        = cfg.notify?.on_skip        ?? false;
     _settingsData.instances = (cfg.plex_instances || []).map(inst => ({
       name:      inst.name || '',
       url:       inst.url  || '',
@@ -1062,9 +1078,11 @@ async function loadSettings() {
     renderSettingsInstances();
     // Populate notification fields
     document.getElementById('s-discord').value = _settingsData.discord_webhook;
-    document.getElementById('s-notify-success').checked = _settingsData.notify_success;
-    document.getElementById('s-notify-failure').checked = _settingsData.notify_failure;
-    document.getElementById('s-notify-skip').checked    = _settingsData.notify_skip;
+    document.getElementById('s-notify-emptied').checked     = cfg.notify?.on_emptied     ?? cfg.notify?.on_success ?? true;
+    document.getElementById('s-notify-health-fail').checked = cfg.notify?.on_health_fail  ?? cfg.notify?.on_failure ?? true;
+    document.getElementById('s-notify-error').checked       = cfg.notify?.on_error        ?? true;
+    document.getElementById('s-notify-clean').checked       = cfg.notify?.on_clean        ?? false;
+    document.getElementById('s-notify-skip').checked        = cfg.notify?.on_skip         ?? false;
     // Pre-populate username if set
     const authUser = document.getElementById('s-auth-user');
     if (authUser && cfg.auth && cfg.auth.username) authUser.value = cfg.auth.username;
@@ -1307,10 +1325,12 @@ function removePath(ii, li, pi) {
 
 async function settingsSave() {
   // Collect notification settings
-  _settingsData.discord_webhook = document.getElementById('s-discord').value.trim();
-  _settingsData.notify_success  = document.getElementById('s-notify-success').checked;
-  _settingsData.notify_failure  = document.getElementById('s-notify-failure').checked;
-  _settingsData.notify_skip     = document.getElementById('s-notify-skip').checked;
+  _settingsData.discord_webhook   = document.getElementById('s-discord').value.trim();
+  _settingsData.notify_emptied    = document.getElementById('s-notify-emptied').checked;
+  _settingsData.notify_health_fail= document.getElementById('s-notify-health-fail').checked;
+  _settingsData.notify_error      = document.getElementById('s-notify-error').checked;
+  _settingsData.notify_clean      = document.getElementById('s-notify-clean').checked;
+  _settingsData.notify_skip       = document.getElementById('s-notify-skip').checked;
 
   ['settings-save-btn','settings-save-btn2'].forEach(id => {
     const b = document.getElementById(id);
@@ -1435,7 +1455,7 @@ async function dryRunLib(inst, lib) {
 }
 
 // ── Wizard (first-run only) ───────────────────────────────────────────────────
-let _wizStep = 1, _wizData = { instances:[], discord_webhook:'', notify_success:false, notify_failure:true, notify_skip:true };
+let _wizStep = 1, _wizData = { instances:[], discord_webhook:'', notify_emptied:true, notify_health_fail:true, notify_error:true, notify_clean:false, notify_skip:false };
 function openWizard() { document.getElementById('wizard-overlay').classList.remove('hidden'); _wizStep=1; renderWizStep(); }
 function closeWizard() { document.getElementById('wizard-overlay').classList.add('hidden'); }
 function setWizStep(n) {

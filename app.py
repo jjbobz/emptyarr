@@ -318,9 +318,11 @@ def api_wizard_save():
     cfg = {
         "discord_webhook": data.get("discord_webhook", ""),
         "notify": {
-            "on_success": data.get("notify_success", False),
-            "on_failure": data.get("notify_failure", True),
-            "on_skip":    data.get("notify_skip",    True),
+            "on_emptied":     data.get("notify_emptied",     data.get("notify_success", True)),
+            "on_health_fail": data.get("notify_health_fail", data.get("notify_failure", True)),
+            "on_error":       data.get("notify_error",       True),
+            "on_clean":       data.get("notify_clean",       False),
+            "on_skip":        data.get("notify_skip",        False),
         },
         "plex_instances": []
     }
