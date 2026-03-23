@@ -279,6 +279,11 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
 
     logger.info(f"[{instance.name} / {library.name}] "
                 f"{_breakdown(trash_items)} in trash snapshot, emptying…")
+
+    # Clean bundles first — moves unavailable/replaced items into actual trash
+    # so emptyTrash can pick them up. Harmless if nothing to clean.
+    plex.clean_bundles()
+
     result = plex.empty_trash(section_id)
 
     if not result["ok"]:

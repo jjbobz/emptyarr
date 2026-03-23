@@ -185,6 +185,23 @@ class PlexClient:
         except Exception:
             return []
 
+    def clean_bundles(self) -> Dict:
+        """
+        Ask Plex to clean orphaned metadata/bundles server-wide.
+        This moves 'unavailable' items into actual trash so emptyTrash can remove them.
+        Equivalent to Plex Settings → Troubleshooting → Clean Bundles.
+        """
+        try:
+            r = self.session.put(
+                f"{self.url}/library/clean",
+                timeout=60
+            )
+            if r.status_code in (200, 202, 204):
+                return {"ok": True}
+            return {"ok": False, "http": r.status_code}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     def empty_trash(self, section_id: str) -> Dict:
         try:
             r = self.session.put(
