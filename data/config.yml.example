@@ -29,7 +29,7 @@ plex_instances:
   # Physical media server example
   - name: My Plex
     url: http://192.168.1.100:32400
-    token: ""  # set via PLEX_TOKEN_MYPLEX env var, or paste in Settings UI
+    token: ""  # set via PLEX_TOKEN_MY_PLEX env var, or paste in Settings UI
     libraries:
       - name: Movies
         type: physical
@@ -58,7 +58,7 @@ plex_instances:
   # Debrid media server example
   - name: My Plex Unlimited
     url: http://192.168.1.100:32410
-    token: ""  # set via PLEX_TOKEN_MYPLEX_UNLIMITED env var
+    token: ""  # set via PLEX_TOKEN_MY_PLEX_UNLIMITED env var
     libraries:
       # Mixed library — physical usenet + debrid symlinks in same Plex library
       # threshold check combines all paths vs total Plex count

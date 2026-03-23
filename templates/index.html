@@ -815,7 +815,25 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><span class="card-title">API Token</span></div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.7;">
+              Use this token to authenticate API calls from scripts or automations without a browser session.
+              Add it as an HTTP header: <code style="color:var(--accent2);">X-API-Token: &lt;token&gt;</code>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="password" id="api-token-display" readonly
+                style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;"
+                placeholder="Set credentials first to generate token" />
+              <button class="btn btn-secondary btn-sm" onclick="toggleApiToken(this)">Show</button>
+              <button class="btn btn-secondary btn-sm" onclick="copyApiToken()">Copy</button>
+            </div>
+            <div id="api-token-result" style="font-size:11px;margin-top:6px;"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
           <div class="card-header"><span class="card-title">Session</span></div>
           <div class="card-body">
             <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
@@ -844,7 +862,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
               </div>
               <div>
                 <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">GitHub</div>
-                <a href="https://github.com/jjbobz/emptyarr" target="_blank" style="color:var(--info2);font-size:12px;">jjbobzin/emptyarr</a>
+                <a href="https://github.com/jjbobz/emptyarr" target="_blank" style="color:var(--info2);font-size:12px;">jjbobz/emptyarr</a>
               </div>
             </div>
           </div>
@@ -911,6 +929,7 @@ function showSettingsSection(name, btn) {
   document.getElementById(`ss-${name}`).classList.add('active');
   if (btn) btn.classList.add('active');
   if (name === 'providers') loadProviderStatus();
+  if (name === 'security')  loadApiToken();
 }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
@@ -1703,6 +1722,33 @@ function startPolling(btn){
 }
 
 // ── Auth settings ─────────────────────────────────────────────────────────────
+async function loadApiToken() {
+  try {
+    const r = await fetch('/api/auth/token');
+    const d = await r.json();
+    const el = document.getElementById('api-token-display');
+    if (el && d.ok) el.value = d.token;
+  } catch(e) {}
+}
+function toggleApiToken(btn) {
+  const el = document.getElementById('api-token-display');
+  if (!el) return;
+  if (el.type === 'password') { el.type = 'text'; btn.textContent = 'Hide'; }
+  else { el.type = 'password'; btn.textContent = 'Show'; }
+}
+async function copyApiToken() {
+  const el = document.getElementById('api-token-display');
+  const result = document.getElementById('api-token-result');
+  if (!el || !el.value) { if(result) result.innerHTML='<span style="color:var(--muted);">No token available</span>'; return; }
+  try {
+    await navigator.clipboard.writeText(el.value);
+    if (result) result.innerHTML = '<span style="color:var(--pass);">✓ Copied to clipboard</span>';
+    setTimeout(() => { if(result) result.innerHTML = ''; }, 2000);
+  } catch(e) {
+    if (result) result.innerHTML = '<span style="color:var(--muted);">Copy failed — select and copy manually</span>';
+  }
+}
+
 async function saveAuth() {
   const user  = document.getElementById('s-auth-user').value.trim();
   const pass  = document.getElementById('s-auth-pass').value;
@@ -1719,6 +1765,7 @@ async function saveAuth() {
       document.getElementById('s-auth-pass').value='';
       document.getElementById('s-auth-pass2').value='';
       updateAuthBanner(true, user);
+      loadApiToken();
       toast('Auth credentials saved','pass');
     } else { result.innerHTML=`<span style="color:var(--fail2);">✗ ${d.error}</span>`; }
   } catch(e) { result.innerHTML='<span style="color:var(--fail2);">Save failed</span>'; }
