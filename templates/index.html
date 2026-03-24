@@ -11,8 +11,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>emptyarr</title>
-<link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1128,8 +1127,8 @@ function renderSettingsInstances() {
     <div class="inst-settings-card">
       <div class="inst-settings-header">
         <div>
-          <div class="inst-settings-name">${inst.name || 'Unnamed Instance'}</div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">${inst.url || ''}</div>
+          <div class="inst-settings-name">${h(inst.name || 'Unnamed Instance')}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">${h(inst.url || '')}</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-danger btn-sm" onclick="settingsRemoveInstance(${ii})">Remove</button>
@@ -1144,7 +1143,7 @@ function renderSettingsInstances() {
           </div>
           <div class="form-group">
             <label class="form-label">Plex URL</label>
-            <input class="form-input" value="${inst.url}" onchange="_settingsData.instances[${ii}].url=this.value" />
+            <input class="form-input" value="${h(inst.url)}" onchange="_settingsData.instances[${ii}].url=this.value" />
           </div>
         </div>
         <div class="form-group">
@@ -1168,9 +1167,9 @@ function renderSettingsLibraries(libs, ii) {
     <div class="lib-settings-item">
       <div class="lib-settings-header" onclick="toggleLibSettings('si-lb-${ii}-${li}')">
         <div style="display:flex;align-items:center;gap:10px;">
-          <span class="lib-settings-name">${lib.name}</span>
-          <span class="type-chip ${lib.type}" style="font-size:9px;">${lib.type}</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${lib.cron}</span>
+          <span class="lib-settings-name">${h(lib.name)}</span>
+          <span class="type-chip ${lib.type}" style="font-size:9px;">${h(lib.type)}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${h(lib.cron)}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:11px;color:var(--muted);">${lib.paths.length} path${lib.paths.length!==1?'s':''}</span>
@@ -1182,7 +1181,7 @@ function renderSettingsLibraries(libs, ii) {
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Library Name</label>
-            <input class="form-input" value="${lib.name}"
+            <input class="form-input" value="${h(lib.name)}"
                    onchange="_settingsData.instances[${ii}].libraries[${li}].name=this.value" />
             <div class="form-hint">Must match Plex library name exactly</div>
           </div>
@@ -1255,8 +1254,8 @@ function renderPathItems(paths, ii, li) {
     return `
     <div class="path-item" style="flex-direction:column;align-items:stretch;gap:6px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <span class="path-item-type">${p.type}</span>
-        <span class="path-item-path">${p.path}</span>
+        <span class="path-item-type">${h(p.type)}</span>
+        <span class="path-item-path">${h(p.path)}</span>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <input type="number" min="1" max="100"
             value="${p.min_threshold ?? 90}"
@@ -1370,7 +1369,7 @@ async function settingsSave() {
       const el = document.getElementById(id);
       if (el) el.innerHTML = d.ok
         ? `<span style="color:var(--pass);">✓ Saved — restart container to apply</span>`
-        : `<span style="color:var(--fail2);">✗ ${d.error}</span>`;
+        : `<span style="color:var(--fail2);">✗ ${h(d.error)}</span>`;
     });
     if (d.ok) toast('Config saved — restart container to apply', 'pass');
     else toast(d.error, 'fail');
@@ -1708,7 +1707,7 @@ async function wizSave3() {
       btn.innerHTML='✓ saved';
       toast('Config saved','pass');
     } else {
-      result.innerHTML=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:7px;padding:12px;color:var(--fail2);font-size:12px;">✗ ${d.error}</div>`;
+      result.innerHTML=`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:7px;padding:12px;color:var(--fail2);font-size:12px;">✗ ${h(d.error)}</div>`;
       btn.disabled=false; btn.innerHTML='💾 Save Config';
     }
   } catch(e) { toast('Save failed','fail'); btn.disabled=false; btn.innerHTML='💾 Save Config'; }
@@ -1764,13 +1763,13 @@ async function saveAuth() {
     const r = await fetch('/api/auth/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
     const d = await r.json();
     if (d.ok) {
-      result.innerHTML=`<span style="color:var(--pass);">✓ ${d.message}</span>`;
+      result.innerHTML=`<span style="color:var(--pass);">✓ ${h(d.message)}</span>`;
       document.getElementById('s-auth-pass').value='';
       document.getElementById('s-auth-pass2').value='';
       updateAuthBanner(true, user);
       loadApiToken();
       toast('Auth credentials saved','pass');
-    } else { result.innerHTML=`<span style="color:var(--fail2);">✗ ${d.error}</span>`; }
+    } else { result.innerHTML=`<span style="color:var(--fail2);">✗ ${h(d.error)}</span>`; }
   } catch(e) { result.innerHTML='<span style="color:var(--fail2);">Save failed</span>'; }
 }
 
@@ -1781,11 +1780,11 @@ async function clearAuth() {
     const r = await fetch('/api/auth/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clear:true})});
     const d = await r.json();
     if (d.ok) {
-      result.innerHTML=`<span style="color:var(--warn2);">✓ ${d.message}</span>`;
+      result.innerHTML=`<span style="color:var(--warn2);">✓ ${h(d.message)}</span>`;
       document.getElementById('s-auth-user').value='';
       updateAuthBanner(false,'');
       toast('Auth removed','warn');
-    } else { result.innerHTML=`<span style="color:var(--fail2);">✗ ${d.error}</span>`; }
+    } else { result.innerHTML=`<span style="color:var(--fail2);">✗ ${h(d.error)}</span>`; }
   } catch(e) { result.innerHTML='<span style="color:var(--fail2);">Failed</span>'; }
 }
 
@@ -1842,7 +1841,7 @@ async function saveProviders() {
       });
       loadProviderStatus(true);
     } else {
-      if (result) result.innerHTML = `<span style="color:var(--fail2);">✗ ${d.error}</span>`;
+      if (result) result.innerHTML = `<span style="color:var(--fail2);">✗ ${h(d.error)}</span>`;
     }
   } catch(e) {
     if (result) result.innerHTML = '<span style="color:var(--fail2);">Save failed</span>';
@@ -1869,19 +1868,19 @@ async function loadProviderStatus(force = false) {
       if (!s.ok) {
         return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
           <span style="font-size:12px;font-weight:600;color:var(--bright);min-width:110px;">${label}</span>
-          <span class="badge error">✗ ${s.error}</span>
+          <span class="badge error">✗ ${h(s.error)}</span>
         </div>`;
       }
       let expiryHtml = '';
       if (s.days_left !== null && s.days_left !== undefined) {
         const cls = s.days_left <= 7 ? 'fail2' : s.days_left <= 30 ? 'warn2' : 'pass';
         expiryHtml = `<span style="font-family:var(--mono);font-size:12px;color:var(--${cls});font-weight:600;">${s.days_left}d left</span>
-          <span style="font-size:10px;color:var(--muted);">expires ${s.expiration}</span>`;
+          <span style="font-size:10px;color:var(--muted);">expires ${h(String(s.expiration))}</span>`;
       }
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
         <span style="font-size:12px;font-weight:600;color:var(--bright);min-width:110px;">${label}</span>
         <span class="badge success">✓ connected</span>
-        <span style="font-size:11px;color:var(--text2);">${s.username || ''}</span>
+        <span style="font-size:11px;color:var(--text2);">${h(s.username || '')}</span>
         ${expiryHtml}
       </div>`;
     }).join('');
