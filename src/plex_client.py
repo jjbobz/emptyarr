@@ -77,23 +77,6 @@ class PlexClient:
         except Exception:
             return 0
 
-    def _quick_has_deleted(self, section_id: str) -> bool:
-        """
-        Fast check — uses JSON to see if ANY items have deletedAt set.
-        JSON omits deletedAt on episode Media children but does include it
-        on show/season level items. So if this returns True we definitely
-        have deleted items; if False we still do the full XML check since
-        episode-level deletions won't show here.
-        Actually used to short-circuit: if JSON shows deletedAt on ANY
-        top-level item, we know we need the full XML scan.
-        We always do the XML scan — this just tells us we can skip it
-        when the library is completely clean at show/season level AND
-        we've recently confirmed no episode deletions.
-        For now: always return True to always do full scan.
-        Optimization opportunity: cache the last scan result.
-        """
-        return True  # Always do full scan for accuracy
-
     def _fetch_deleted_xml(self, section_id: str, type_id: int) -> List[Dict]:
         """
         Fetch items with deletedAt using XML (required — JSON omits deletedAt

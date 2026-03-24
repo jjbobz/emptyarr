@@ -188,7 +188,7 @@ def api_status():
         "history_count":      len(runner.get_history()),
         "scheduling_enabled": get_scheduling_enabled(),
         "config_missing":     config.config_missing,
-        "auth_enabled":       auth_enabled(),
+        "auth_enabled":       auth_enabled(config),
     })
 
 

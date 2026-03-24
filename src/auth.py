@@ -1,3 +1,4 @@
+import bcrypt
 import hashlib
 import os
 import secrets
@@ -5,16 +6,38 @@ import time
 from functools import wraps
 from flask import request, session, redirect, url_for, jsonify
 
+_BCRYPT_ROUNDS = 12
 
-def _hash_password(password: str) -> str:
+
+def hash_password(password: str) -> str:
+    """Generate a bcrypt hash for storage in config.yml."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)).decode()
+
+
+def _legacy_hash(password: str) -> str:
+    """SHA-256 hash used for env-var auth path (deterministic — needed for stable X-API-Token)."""
     return hashlib.sha256(f"emptyarr:{password}".encode()).hexdigest()
+
+
+def _verify_password(plain: str, stored: str) -> bool:
+    """Verify plain password against stored hash.
+    Supports bcrypt (new) and SHA-256 (legacy config.yml hashes).
+    """
+    if stored.startswith(("$2b$", "$2a$", "$2y$")):
+        try:
+            return bcrypt.checkpw(plain.encode(), stored.encode())
+        except Exception:
+            return False
+    # Legacy SHA-256 fallback for configs created before bcrypt was introduced
+    return secrets.compare_digest(_legacy_hash(plain), stored)
 
 
 def _get_credentials(config=None):
     env_user = os.environ.get("EMPTYARR_USERNAME", "")
     env_pass = os.environ.get("EMPTYARR_PASSWORD", "")
     if env_user and env_pass:
-        return env_user, _hash_password(env_pass)
+        # Keep SHA-256 for env-var path — deterministic hash keeps X-API-Token stable
+        return env_user, _legacy_hash(env_pass)
     if config and getattr(config, "auth_username", "") and getattr(config, "auth_password_hash", ""):
         return config.auth_username, config.auth_password_hash
     return None, None
@@ -61,8 +84,7 @@ def check_credentials(username: str, password: str, config=None, ip: str = "") -
         return True
     if ip and _is_locked_out(ip):
         return False
-    ok = (secrets.compare_digest(username, u) and
-          secrets.compare_digest(_hash_password(password), ph))
+    ok = secrets.compare_digest(username, u) and _verify_password(password, ph)
     if ip:
         _record_attempt(ip, ok)
     return ok
@@ -70,10 +92,6 @@ def check_credentials(username: str, password: str, config=None, ip: str = "") -
 
 def is_locked_out(ip: str) -> bool:
     return _is_locked_out(ip)
-
-
-def hash_password(password: str) -> str:
-    return _hash_password(password)
 
 
 def is_authenticated() -> bool:
@@ -84,7 +102,7 @@ def require_auth(f):
     """
     Redirect to login for page requests, 401 for API requests.
     API requests can authenticate via session cookie OR X-API-Token header.
-    The API token is the SHA-256 hash of the password (same as stored hash).
+    The API token is the stored password hash (from /api/auth/token).
     """
     @wraps(f)
     def decorated(*args, **kwargs):

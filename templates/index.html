@@ -12,7 +12,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>emptyarr</title>
 <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -933,6 +933,9 @@ function showSettingsSection(name, btn) {
 }
 
 // ── Utils ────────────────────────────────────────────────────────────────────
+function h(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -983,7 +986,7 @@ function applyChecks(globalChecks) {
     const detail = Object.values(checks).map(c => c.detail).join(' | ') || 'checking…';
     const cls = Object.keys(checks).length === 0 ? '' : allPass ? 'pass' : 'fail';
     pill.className = `plex-status-pill ${cls}`;
-    pill.innerHTML = `<span class="sdot ${cls}"></span><span title="${detail}">${inst.name}</span>`;
+    pill.innerHTML = `<span class="sdot ${cls}"></span><span title="${h(detail)}">${h(inst.name)}</span>`;
   });
 }
 
@@ -1026,22 +1029,22 @@ function renderHistory(data) {
     const rid = `run-${run.timestamp.replace(/[:.]/g, '-')}`;
     const isOpen = _expanded.has(rid);
     const badge = `<span class="badge ${run.status}">${run.status.replace('_',' ')}</span>`;
-    const dots = Object.entries(run.checks || {}).map(([n, c]) => `<span class="cdot ${c.pass?'pass':'fail'}" title="${n}: ${c.detail}"></span>`).join('');
+    const dots = Object.entries(run.checks || {}).map(([n, c]) => `<span class="cdot ${c.pass?'pass':'fail'}" title="${h(n)}: ${h(c.detail)}"></span>`).join('');
     const rem = run.removed_count > 0 ? `<span style="color:var(--pass);font-family:var(--mono);font-weight:700;">${run.removed_count}</span>` : `<span style="color:var(--muted);">0</span>`;
     const checksHtml = Object.entries(run.checks || {}).map(([n,c]) =>
-      `<div class="check-detail-row"><span class="cdot ${c.pass?'pass':'fail'}" style="margin-top:3px;flex-shrink:0;"></span><span class="cdn">${n}</span><span class="cdd">${c.detail||''}</span></div>`
+      `<div class="check-detail-row"><span class="cdot ${c.pass?'pass':'fail'}" style="margin-top:3px;flex-shrink:0;"></span><span class="cdn">${h(n)}</span><span class="cdd">${h(c.detail||'')}</span></div>`
     ).join('');
     const removedHtml = run.removed_items && run.removed_items.length
-      ? run.removed_items.map(i => `<div class="removed-entry"><span class="re-type">${i.type||''}</span><span>${i.title}</span>${i.year?`<span class="re-year">${i.year}</span>`:''}</div>`).join('')
+      ? run.removed_items.map(i => `<div class="removed-entry"><span class="re-type">${h(i.type||'')}</span><span>${h(i.title)}</span>${i.year?`<span class="re-year">${h(i.year)}</span>`:''}</div>`).join('')
       : `<div style="color:var(--muted);font-size:11px;font-style:italic;">No items removed</div>`;
     return `
       <tr class="data-row ${isOpen?'expanded':''}" onclick="toggleExpand('${rid}',this)">
         <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">${fmtTime(run.timestamp)}</td>
-        <td><span class="inst-chip">${run.instance}</span></td>
-        <td><span class="lib-chip">${run.library}</span></td>
+        <td><span class="inst-chip">${h(run.instance)}</span></td>
+        <td><span class="lib-chip">${h(run.library)}</span></td>
         <td>${badge}</td>
         <td><div class="check-dots">${dots}</div></td>
-        <td style="font-size:12px;color:var(--text);">${run.message}</td>
+        <td style="font-size:12px;color:var(--text);">${h(run.message)}</td>
         <td>${rem}</td>
       </tr>
       <tr class="expand-row ${isOpen?'open':''}" id="${rid}">
@@ -1536,8 +1539,8 @@ function renderWizInstList() {
   list.innerHTML = _wizData.instances.map((inst, i) => `
     <div style="background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <div>
-        <div style="font-weight:600;color:var(--bright);">${inst.name}</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${inst.url} — ${inst.libraries.length} librar${inst.libraries.length===1?'y':'ies'}</div>
+        <div style="font-weight:600;color:var(--bright);">${h(inst.name)}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${h(inst.url)} — ${inst.libraries.length} librar${inst.libraries.length===1?'y':'ies'}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="_wizData.instances.splice(${i},1);renderWizInstList()">Remove</button>
     </div>`).join('');
@@ -1554,8 +1557,8 @@ async function wizTestPlex() {
       hint.textContent=`✓ ${d.detail}`; hint.className='form-hint success';
       document.getElementById('wi-lib-checks').innerHTML=d.libraries.map(lib=>`
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text);">
-          <input type="checkbox" value="${lib.title}" checked style="accent-color:var(--accent);" /> ${lib.title}
-          <span style="color:var(--muted);font-size:10px;">(${lib.type})</span>
+          <input type="checkbox" value="${h(lib.title)}" checked style="accent-color:var(--accent);" /> ${h(lib.title)}
+          <span style="color:var(--muted);font-size:10px;">(${h(lib.type)})</span>
         </label>`).join('');
       document.getElementById('wi-libs').style.display='block';
       document.getElementById('wi-save').style.display='inline-flex';

@@ -56,12 +56,6 @@ class NotifyConfig:
     on_error:         bool = True   # emptyTrash API call failed
     on_skip:          bool = False  # scheduling paused, config error, section not found
 
-    # Legacy aliases for backward compat with old config files
-    @property
-    def on_success(self): return self.on_emptied
-    @property
-    def on_failure(self): return self.on_health_fail
-
 
 # ── Top-level app config ──────────────────────────────────────────────────────
 

@@ -101,14 +101,3 @@ def notify_skip(webhook_url: str, instance_name: str,
         "description": f"**Reason:** {reason}",
         "color":       0xe8a045,
     }]})
-
-
-# ── Legacy aliases for any existing callers ───────────────────────────────────
-def notify_success(webhook_url, instance_name, library_name, removed_items, checks):
-    if removed_items:
-        notify_emptied(webhook_url, instance_name, library_name, removed_items, checks)
-    else:
-        notify_clean(webhook_url, instance_name, library_name, checks)
-
-def notify_failure(webhook_url, instance_name, library_name, failed_checks, all_checks):
-    notify_health_fail(webhook_url, instance_name, library_name, failed_checks, all_checks)
