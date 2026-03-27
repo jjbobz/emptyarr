@@ -727,7 +727,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
         <div class="settings-section-title">Notifications</div>
         <div class="settings-section-desc">Configure Discord webhook notifications.</div>
         <div class="form-group">
-          <label class="form-label">Discord Webhook URL</label>
+          <label class="form-label" for="s-discord">Discord Webhook URL</label>
           <input class="form-input" id="s-discord" placeholder="https://discord.com/api/webhooks/…" />
         </div>
         <div class="form-group">
@@ -789,16 +789,16 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
           <div class="card-body">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Username</label>
-                <input class="form-input" id="s-auth-user" placeholder="e.g. admin" autocomplete="username" />
+                <label class="form-label" for="s-auth-user">Username</label>
+                <input class="form-input" id="s-auth-user" placeholder="e.g. admin" autocomplete="off" />
               </div>
               <div class="form-group">
-                <label class="form-label">New Password</label>
+                <label class="form-label" for="s-auth-pass">New Password</label>
                 <input class="form-input" type="password" id="s-auth-pass" placeholder="Enter new password" autocomplete="new-password" />
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Confirm Password</label>
+              <label class="form-label" for="s-auth-pass2">Confirm Password</label>
               <input class="form-input" type="password" id="s-auth-pass2" placeholder="Confirm new password" autocomplete="new-password" style="max-width:320px;" />
             </div>
             <div class="form-hint" style="margin-bottom:16px;">

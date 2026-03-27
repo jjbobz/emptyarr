@@ -180,6 +180,70 @@ def run_instance_checks(instance: PlexInstanceConfig,
 
 # ── Library runner ────────────────────────────────────────────────────────────
 
+def _breakdown(items: list) -> str:
+    counts: dict = {}
+    for item in items:
+        t = item.get("type", "item")
+        counts[t] = counts.get(t, 0) + 1
+    order = ["episode", "season", "show", "movie"]
+    parts = [f"{counts[k]} {k}{'s' if counts[k] != 1 else ''}" for k in order if k in counts]
+    parts += [f"{v} {k}{'s' if v != 1 else ''}" for k, v in counts.items() if k not in order]
+    return ", ".join(parts) if parts else f"{len(items)} item(s)"
+
+
+def _handle_checks_failed(config, instance, library, all_checks, failed):
+    failed_names = ", ".join(failed.keys())
+    msg = f"Checks failed ({failed_names}) — trash empty skipped"
+    logger.warning(f"[{instance.name} / {library.name}] {msg}")
+    _record(instance.name, library.name, "skipped", all_checks, msg)
+    if config.notify.on_health_fail and config.discord_webhook:
+        notifications.notify_health_fail(config.discord_webhook,
+                                         instance.name, library.name,
+                                         failed, all_checks)
+
+
+def _handle_dry_run(instance, library, trash_items, all_checks, headline_count):
+    trash_count = len(trash_items)
+    if trash_count > 0:
+        msg = f"[DRY RUN] Would remove {_breakdown(trash_items)} from trash — no action taken"
+    else:
+        msg = "[DRY RUN] Trash is already empty"
+    logger.info(f"[{instance.name} / {library.name}] {msg}")
+    _record(instance.name, library.name, "dry_run", all_checks, msg,
+            trash_items, removed_count=headline_count)
+
+
+def _handle_empty_failed(config, instance, library, result, all_checks, trash_items):
+    msg = f"emptyTrash failed: {result.get('error', result.get('http'))}"
+    logger.error(f"[{instance.name} / {library.name}] {msg}")
+    _record(instance.name, library.name, "error", all_checks, msg, trash_items)
+    if config.notify.on_error and config.discord_webhook:
+        notifications.notify_error(config.discord_webhook,
+                                   instance.name, library.name,
+                                   str(result.get('error', result.get('http'))),
+                                   all_checks)
+
+
+def _handle_empty_success(config, instance, library, trash_items, all_checks,
+                          headline_count, trash_count):
+    if trash_count > 0:
+        msg = f"Emptied {_breakdown(trash_items)} from trash"
+    else:
+        msg = "Trash was already empty"
+    logger.info(f"[{instance.name} / {library.name}] {msg}")
+    _record(instance.name, library.name, "success", all_checks, msg,
+            trash_items if trash_items else [],
+            removed_count=headline_count if trash_count > 0 else 0)
+    if trash_count > 0 and config.notify.on_emptied and config.discord_webhook:
+        notifications.notify_emptied(config.discord_webhook,
+                                     instance.name, library.name,
+                                     trash_items, all_checks,
+                                     breakdown=_breakdown(trash_items))
+    elif trash_count == 0 and config.notify.on_clean and config.discord_webhook:
+        notifications.notify_clean(config.discord_webhook,
+                                   instance.name, library.name, all_checks)
+
+
 def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
                 config: AppConfig, plex: PlexClient,
                 plex_checks: Optional[Dict] = None,
@@ -195,8 +259,7 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
     # Scheduling gate — only applies to cron-triggered runs, not manual or dry run
     if not dry_run and not manual and not get_scheduling_enabled():
         logger.info(f"[{instance.name} / {library.name}] Scheduling paused — skipping")
-        _record(instance.name, library.name, "skipped", {},
-                "Scheduling is paused")
+        _record(instance.name, library.name, "skipped", {}, "Scheduling is paused")
         return
 
     # Resolve section ID
@@ -206,75 +269,32 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
         logger.warning(f"[{instance.name} / {library.name}] {msg}")
         _record(instance.name, library.name, "error", {}, msg)
         if config.notify.on_skip and config.discord_webhook:
-            notifications.notify_skip(config.discord_webhook,
-                                      instance.name, library.name, msg)
+            notifications.notify_skip(config.discord_webhook, instance.name, library.name, msg)
         return
 
-    # Plex reachability
     all_checks = dict(plex_checks or run_instance_checks(instance, plex))
-
-    # Per-path checks
     plex_count  = plex.get_library_item_count(section_id)
     is_mixed    = library.type == "mixed"
 
     for path_cfg in library.paths:
         # For mixed libraries skip individual threshold — use combined check below
-        path_checks = _run_path_checks(path_cfg, plex_count,
-                                       skip_threshold=is_mixed)
-        all_checks.update(path_checks)
+        all_checks.update(_run_path_checks(path_cfg, plex_count, skip_threshold=is_mixed))
 
-    # Combined file threshold for mixed libraries
     if is_mixed and library.paths:
         all_checks["Files (combined)"] = _run_mixed_threshold(library, plex_count)
 
-    # Evaluate
     failed = {n: c for n, c in all_checks.items() if not c["pass"]}
-
     if failed:
-        failed_names = ", ".join(failed.keys())
-        msg = f"Checks failed ({failed_names}) — trash empty skipped"
-        logger.warning(f"[{instance.name} / {library.name}] {msg}")
-        _record(instance.name, library.name, "skipped", all_checks, msg)
-        if config.notify.on_health_fail and config.discord_webhook:
-            notifications.notify_health_fail(config.discord_webhook,
-                                             instance.name, library.name,
-                                             failed, all_checks)
+        _handle_checks_failed(config, instance, library, all_checks, failed)
         return
 
-    # Snapshot trash — try to get item list for display
-    trash_items  = plex.get_trash_items(section_id)
-    trash_count  = len(trash_items)
-
-    # Build breakdown by type for clear messaging
-    def _breakdown(items):
-        counts = {}
-        for item in items:
-            t = item.get("type", "item")
-            counts[t] = counts.get(t, 0) + 1
-        # Order: episodes first, then seasons, shows, movies, other
-        order = ["episode", "season", "show", "movie"]
-        parts = []
-        for k in order:
-            if k in counts:
-                parts.append(f"{counts[k]} {k}{'s' if counts[k] != 1 else ''}")
-        for k, v in counts.items():
-            if k not in order:
-                parts.append(f"{v} {k}{'s' if v != 1 else ''}")
-        return ", ".join(parts) if parts else f"{len(items)} item(s)"
-
-    # Episode count is the headline number for the tile
-    episode_count = sum(1 for i in trash_items if i.get("type") == "episode")
+    trash_items    = plex.get_trash_items(section_id)
+    trash_count    = len(trash_items)
+    episode_count  = sum(1 for i in trash_items if i.get("type") == "episode")
     headline_count = episode_count if episode_count > 0 else trash_count
 
     if dry_run:
-        if trash_count > 0:
-            breakdown = _breakdown(trash_items)
-            msg = f"[DRY RUN] Would remove {breakdown} from trash — no action taken"
-        else:
-            msg = "[DRY RUN] Trash is already empty"
-        logger.info(f"[{instance.name} / {library.name}] {msg}")
-        _record(instance.name, library.name, "dry_run", all_checks, msg,
-                trash_items, removed_count=headline_count)
+        _handle_dry_run(instance, library, trash_items, all_checks, headline_count)
         return
 
     logger.info(f"[{instance.name} / {library.name}] "
@@ -283,36 +303,11 @@ def run_library(instance: PlexInstanceConfig, library: LibraryConfig,
     # Clean bundles first — moves unavailable/replaced items into actual trash
     # so emptyTrash can pick them up. Harmless if nothing to clean.
     plex.clean_bundles()
-
     result = plex.empty_trash(section_id)
 
     if not result["ok"]:
-        msg = f"emptyTrash failed: {result.get('error', result.get('http'))}"
-        logger.error(f"[{instance.name} / {library.name}] {msg}")
-        _record(instance.name, library.name, "error", all_checks, msg, trash_items)
-        if config.notify.on_error and config.discord_webhook:
-            notifications.notify_error(config.discord_webhook,
-                                       instance.name, library.name,
-                                       str(result.get('error', result.get('http'))),
-                                       all_checks)
+        _handle_empty_failed(config, instance, library, result, all_checks, trash_items)
         return
 
-    if trash_count > 0:
-        breakdown = _breakdown(trash_items)
-        msg = f"Emptied {breakdown} from trash"
-    else:
-        msg = "Trash was already empty"
-
-    logger.info(f"[{instance.name} / {library.name}] {msg}")
-    _record(instance.name, library.name, "success", all_checks, msg,
-            trash_items if trash_items else [],
-            removed_count=headline_count if trash_count > 0 else 0)
-
-    if trash_count > 0 and config.notify.on_emptied and config.discord_webhook:
-        notifications.notify_emptied(config.discord_webhook,
-                                     instance.name, library.name,
-                                     trash_items, all_checks,
-                                     breakdown=_breakdown(trash_items))
-    elif trash_count == 0 and config.notify.on_clean and config.discord_webhook:
-        notifications.notify_clean(config.discord_webhook,
-                                   instance.name, library.name, all_checks)
+    _handle_empty_success(config, instance, library, trash_items, all_checks,
+                          headline_count, trash_count)

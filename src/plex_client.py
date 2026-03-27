@@ -98,7 +98,7 @@ class PlexClient:
                 return []
             root    = ET.fromstring(r.text)
             deleted = []
-            for item in list(root):
+            for item in root:
                 # Check deletedAt on the item itself (shows, seasons)
                 if item.get("deletedAt"):
                     deleted.append({
