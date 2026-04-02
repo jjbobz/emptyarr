@@ -26,21 +26,100 @@ def _check_fields(checks: Dict) -> list:
     ]
 
 
+def _format_tv_tree(items: List[Dict]) -> str:
+    """
+    Build a hierarchical show → season → episode listing for Discord.
+    Episodes are grouped under their show and season.
+    Seasons and shows without episodes are listed beneath the tree.
+    """
+    episodes = [i for i in items if i.get("type") == "episode"]
+    seasons  = [i for i in items if i.get("type") == "season"]
+    shows    = [i for i in items if i.get("type") == "show"]
+
+    # Build tree: {show_name: {season_label: [ep_labels]}}
+    tree: dict = {}
+    for ep in episodes:
+        show   = ep.get("grandparent_title") or ep.get("parent_title") or "Unknown Show"
+        s_num  = ep.get("parent_index", "")
+        season = f"Season {s_num}" if s_num else (ep.get("parent_title") or "Unknown Season")
+        ep_num = ep.get("index", "")
+        label  = f"Ep {ep_num} \u2013 {ep['title']}" if ep_num else ep["title"]
+        tree.setdefault(show, {}).setdefault(season, []).append((int(ep_num) if str(ep_num).isdigit() else 999, label))
+
+    # Sort episodes within each season
+    for show in tree:
+        for season in tree[show]:
+            tree[show][season].sort(key=lambda x: x[0])
+            tree[show][season] = [label for _, label in tree[show][season]]
+
+    # Seasons without episodes
+    for s in seasons:
+        show   = s.get("parent_title") or s.get("grandparent_title") or "Unknown Show"
+        s_num  = s.get("index", "") or s.get("parent_index", "")
+        season = f"Season {s_num}" if s_num else s["title"]
+        tree.setdefault(show, {}).setdefault(season, [])
+
+    # Shows without seasons/episodes
+    for sh in shows:
+        tree.setdefault(sh["title"], {})
+
+    def _season_num(s: str) -> int:
+        parts = s.split()
+        return int(parts[-1]) if parts and parts[-1].isdigit() else 999
+
+    lines = []
+    for show_name in sorted(tree):
+        lines.append(f"**{show_name}**")
+        for season in sorted(tree[show_name], key=_season_num):
+            lines.append(f"\u00a0\u00a0{season}")
+            for ep in tree[show_name][season]:
+                lines.append(f"\u00a0\u00a0\u00a0\u00a0\u2022 {ep}")
+
+    return "\n".join(lines)
+
+
 def notify_emptied(webhook_url: str, instance_name: str, library_name: str,
                    removed_items: List[Dict], checks: Dict, breakdown: str = ""):
     """Fired when trash was actually emptied (items removed)."""
     if not webhook_url:
         return
-    count    = len(removed_items)
-    titles   = "\n".join(
-        f"• {i['title']}" + (f" ({i['year']})" if i.get("year") else "")
-        for i in removed_items[:15]
-        if i.get("type") == "episode" or count <= 15
-    )
-    overflow    = f"\n_…and {count - 15} more_" if count > 15 else ""
+
+    count       = len(removed_items)
     description = f"Emptied **{breakdown or f'{count} item(s)'}** from trash."
-    if titles:
-        description += f"\n\n{titles}{overflow}"
+
+    has_tv     = any(i.get("type") in ("episode", "season", "show") for i in removed_items)
+    has_movies = any(i.get("type") == "movie" for i in removed_items)
+
+    body_lines = []
+
+    if has_tv:
+        tv_items = [i for i in removed_items if i.get("type") in ("episode", "season", "show")]
+        body_lines.append(_format_tv_tree(tv_items))
+
+    if has_movies:
+        movies = [i for i in removed_items if i.get("type") == "movie"]
+        if body_lines:
+            body_lines.append("")  # blank line between TV and movies
+        for m in movies[:20]:
+            year = f" ({m['year']})" if m.get("year") else ""
+            body_lines.append(f"• {m['title']}{year}")
+        if len(movies) > 20:
+            body_lines.append(f"_…and {len(movies) - 20} more movies_")
+
+    if not has_tv and not has_movies and removed_items:
+        for i in removed_items[:15]:
+            year = f" ({i['year']})" if i.get("year") else ""
+            body_lines.append(f"• {i['title']}{year}")
+        if count > 15:
+            body_lines.append(f"_…and {count - 15} more_")
+
+    if body_lines:
+        body = "\n".join(body_lines)
+        # Discord embed description cap is 4096 chars — truncate cleanly if needed
+        if len(description) + len(body) + 2 > 4000:
+            body = body[:4000 - len(description) - 20] + "\n_…(truncated)_"
+        description += f"\n\n{body}"
+
     _post(webhook_url, {"embeds": [{
         "title":       f"✅ emptyarr — {instance_name} / {library_name}",
         "description": description,

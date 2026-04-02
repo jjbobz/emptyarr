@@ -100,26 +100,27 @@ class PlexClient:
             deleted = []
             for item in root:
                 # Check deletedAt on the item itself (shows, seasons)
+                def _item_dict(deleted_at: int) -> Dict:
+                    return {
+                        "title":             item.get("title", "Unknown"),
+                        "year":              item.get("year", ""),
+                        "type":              _TYPE_LABELS.get(type_id, "item"),
+                        "deleted_at":        deleted_at,
+                        "media_type_id":     type_id,
+                        "index":             item.get("index", ""),
+                        "parent_title":      item.get("parentTitle", ""),
+                        "parent_index":      item.get("parentIndex", ""),
+                        "grandparent_title": item.get("grandparentTitle", ""),
+                    }
+
                 if item.get("deletedAt"):
-                    deleted.append({
-                        "title":         item.get("title", "Unknown"),
-                        "year":          item.get("year", ""),
-                        "type":          _TYPE_LABELS.get(type_id, "item"),
-                        "deleted_at":    int(item.get("deletedAt", 0)),
-                        "media_type_id": type_id,
-                    })
+                    deleted.append(_item_dict(int(item.get("deletedAt", 0))))
                 else:
                     # Check deletedAt on <Media> children (episodes with
                     # unavailable/replaced file versions)
                     for media in item.findall("Media"):
                         if media.get("deletedAt"):
-                            deleted.append({
-                                "title":         item.get("title", "Unknown"),
-                                "year":          item.get("year", ""),
-                                "type":          _TYPE_LABELS.get(type_id, "item"),
-                                "deleted_at":    int(media.get("deletedAt", 0)),
-                                "media_type_id": type_id,
-                            })
+                            deleted.append(_item_dict(int(media.get("deletedAt", 0))))
                             break  # one entry per episode
             return deleted
         except Exception:

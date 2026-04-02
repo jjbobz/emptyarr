@@ -64,6 +64,9 @@ if not _secret_key_env:
         "(e.g. `openssl rand -hex 32`) to persist sessions across restarts."
     )
 app.secret_key = _secret_key_env or secrets.token_hex(32)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"]   = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
 scheduler      = BackgroundScheduler()
 _next_runs: dict = {}
 

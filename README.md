@@ -64,6 +64,7 @@ docker build -t emptyarr:latest .
 | `LOG_DIR` | `data/logs` | Directory where log files are written |
 | `BROWSE_ROOTS` | `/mnt,/media,/data,/home` | Comma-separated list of root paths the file browser is allowed to enter |
 | `FLASK_HOST` | `127.0.0.1` | Network interface to bind to. Set to `0.0.0.0` if you need external access or are using a reverse proxy |
+| `SESSION_COOKIE_SECURE` | `false` | Set to `true` when serving over HTTPS — marks the session cookie as Secure so it's never sent over plain HTTP |
 
 ### First run
 
