@@ -17,7 +17,9 @@ services:
       # Paths used in config.yml must be reachable from inside the container.
 
       # All symlink media (debrid, usenet symlinks):
-      - /mnt/symlink_media:/mnt/symlink_media:ro
+      # slave propagation is required so FUSE mounts (Decypharr, zurg, etc.)
+      # created after container start are visible inside the container.
+      - /mnt/symlink_media:/mnt/symlink_media:ro,slave
 
       # Physical media:
       - /mnt/user/media:/mnt/user/media:ro
@@ -35,6 +37,11 @@ services:
       - AD_API_KEY=${AD_API_KEY:-}
       - TB_API_KEY=${TB_API_KEY:-}
       - DL_API_KEY=${DL_API_KEY:-}
+
+      # ── Session key (recommended) ────────────────────────────────────────────
+      # Stable key so users aren't logged out on every restart.
+      # Generate with: openssl rand -hex 32
+      - EMPTYARR_SECRET_KEY=${EMPTYARR_SECRET_KEY:-}
 
       # ── Web UI auth (optional but recommended) ───────────────────────────────
       # If set, the web UI will require a username and password.

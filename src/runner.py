@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from src.config import AppConfig, LibraryConfig, PathConfig, PlexInstanceConfig
 from src.plex_client import PlexClient
-from src.checks import check_mountpoint, check_symlinks, check_file_threshold, count_files
+from src.checks import check_mountpoint, check_debrid_mount, check_file_threshold, count_files
 from src.providers import check_provider
 from src import notifications
 
@@ -119,9 +119,9 @@ def _run_path_checks(path_cfg: PathConfig, plex_count: int,
     # 1. Mountpoint — always
     results[f"Mount ({label})"] = check_mountpoint(path_cfg.path)
 
-    # 2. Symlink resolution — debrid and usenet only
+    # 2. Debrid mount health — debrid and usenet only
     if path_cfg.type in ("debrid", "usenet"):
-        results[f"Symlinks ({label})"] = check_symlinks(path_cfg.path)
+        results[f"Debrid mount ({label})"] = check_debrid_mount(path_cfg.path)
 
     # 3. File threshold — skipped for mixed (handled at library level)
     if not skip_threshold:

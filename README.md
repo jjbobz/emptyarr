@@ -11,7 +11,7 @@ emptyarr runs on a schedule, checks that your mounts are actually healthy, and t
 Before emptying trash on any library, emptyarr runs:
 
 1. **Mount check** — walks up the path tree to find the nearest mount point and verifies it's accessible
-2. **Symlink check** — for debrid/usenet paths, samples a random set of symlinks and verifies they resolve to real files
+2. **Debrid mount check** — for debrid/usenet paths, reads symlink targets via `os.readlink()` (without resolving them), finds the underlying FUSE mount point, and verifies it is accessible and non-empty. This detects a dead mount even when symlinks point into trash and would otherwise appear broken
 3. **File threshold** — compares the count of files on disk to your Plex library count. If the ratio drops below your configured threshold (default 90%), something's wrong and it bails
 4. **Combined check** — for mixed libraries (physical + debrid), sums all paths and checks the combined ratio
 
@@ -40,10 +40,12 @@ docker build -t emptyarr:latest .
 | Host | Container | Mode |
 |---|---|---|
 | `/mnt/cache/appdata/emptyarr/data` | `/app/data` | Read/Write |
-| `/mnt/symlink_media` | `/symlink_media` | Read Only |
+| `/mnt/symlink_media` | `/symlink_media` | Read Only - Slave |
 | `/mnt/user/media` | `/mnt/user/media` | Read Only |
 
 > The container path for symlink media needs to match what your symlinks actually point to. Check with `ls -la /mnt/symlink_media/symlinks/radarr/ | head -3` and look at the symlink targets. If they start with `/symlink_media/` (no `/mnt`), use that as the container path.
+
+> **Slave propagation required for FUSE mounts:** The symlink media volume must use `slave` propagation (`:ro,slave`) so that FUSE mounts created by tools like Decypharr or zurg after the container starts are visible inside the container. Without `slave`, the container sees a stale snapshot of the host mount namespace and the FUSE filesystem will appear empty or missing.
 
 **Environment variables:**
 

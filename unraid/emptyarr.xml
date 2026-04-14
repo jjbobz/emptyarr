@@ -49,8 +49,8 @@
   <Config Name="Symlink Media Root"
           Target="/mnt/symlink_media"
           Default="/mnt/symlink_media"
-          Mode="ro"
-          Description="Root path containing your symlink media (debrid/usenet symlinks and mounts). Mount the root folder — the wizard will let you select specific subfolders. The container path must match so symlink targets can resolve."
+          Mode="ro,slave"
+          Description="Root path containing your symlink media (debrid/usenet symlinks and mounts). Must use slave propagation so FUSE mounts (Decypharr, zurg, etc.) created after container start are visible inside. Mount the root folder — the wizard will let you select specific subfolders. The container path must match so symlink targets can resolve."
           Type="Path"
           Display="always"
           Required="false"
@@ -65,6 +65,17 @@
           Display="always"
           Required="false"
           Mask="false">/mnt/user/media</Config>
+
+  <!-- ── Session key ──────────────────────────────────────────────────────── -->
+  <Config Name="Secret Key"
+          Target="EMPTYARR_SECRET_KEY"
+          Default=""
+          Mode=""
+          Description="Stable session key so users aren't logged out on every container restart. Generate with: openssl rand -hex 32"
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="true"></Config>
 
   <!-- ── Web UI auth ────────────────────────────────────────────────────── -->
   <Config Name="Web UI Username (optional)"

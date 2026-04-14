@@ -73,6 +73,91 @@ def _walk_symlinks(path: str, sample_size: int) -> tuple:
     return symlinks_checked, symlinks_broken, broken_examples[:3]
 
 
+def check_debrid_mount(path: str, sample_size: int = 10) -> Dict:
+    """
+    Check FUSE mount health for debrid/usenet paths by reading symlink targets
+    via os.readlink() rather than resolving them. Finds the underlying mount
+    point from target paths and verifies it is accessible and non-empty.
+
+    This handles trash scenarios where symlinks point to files that no longer
+    exist at their current location — the mount just needs to be alive.
+    """
+    if not os.path.exists(path):
+        return {"pass": False, "detail": f"Path does not exist: {path}"}
+
+    targets: List[str] = []
+    try:
+        for root, dirs, files in os.walk(path, followlinks=False):
+            for name in files + dirs:
+                full = os.path.join(root, name)
+                if os.path.islink(full):
+                    try:
+                        target = os.readlink(full)
+                        if not os.path.isabs(target):
+                            target = os.path.normpath(
+                                os.path.join(os.path.dirname(full), target)
+                            )
+                        targets.append(target)
+                    except OSError:
+                        pass
+                if len(targets) >= sample_size:
+                    break
+            if len(targets) >= sample_size:
+                break
+    except PermissionError as e:
+        return {"pass": False, "detail": f"Permission error: {e}"}
+
+    if not targets:
+        return {"pass": True, "detail": f"No symlinks found in {path} — skipped"}
+
+    # For each target, walk up to find the nearest mount point.
+    # The mount just needs to be accessible and non-empty — targets don't need
+    # to resolve (they may point into trash).
+    mount_points: set = set()
+    for target in targets:
+        check = os.path.dirname(target)
+        while True:
+            if os.path.isdir(check):
+                try:
+                    result = subprocess.run(
+                        ["mountpoint", "-q", check],
+                        capture_output=True, timeout=5
+                    )
+                    if result.returncode == 0:
+                        mount_points.add(check)
+                        break
+                    # Not a mount point — keep walking up
+                except FileNotFoundError:
+                    # mountpoint binary unavailable — use first accessible dir
+                    mount_points.add(check)
+                    break
+                except Exception:
+                    break
+            parent = os.path.dirname(check)
+            if parent == check:
+                if os.path.isdir(check):
+                    mount_points.add(check)
+                break
+            check = parent
+
+    if not mount_points:
+        return {"pass": False, "detail": "Could not determine mount point from symlink targets"}
+
+    failed: List[str] = []
+    for mp in sorted(mount_points):
+        try:
+            if not os.listdir(mp):
+                failed.append(f"{mp} (empty — mount may be dead)")
+        except Exception as e:
+            failed.append(f"{mp} ({e})")
+
+    if failed:
+        return {"pass": False, "detail": f"Debrid mount unhealthy: {'; '.join(failed)}"}
+
+    mounts_str = ", ".join(sorted(mount_points))
+    return {"pass": True, "detail": f"Debrid mount OK ({mounts_str})"}
+
+
 def check_symlinks(path: str, sample_size: int = 50) -> Dict:
     """
     Sample up to sample_size symlinks under path, verify targets resolve.
